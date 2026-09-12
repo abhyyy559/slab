@@ -1,1 +1,1 @@
-{"run_id": "v1/rename", "step": "4/4", "status": "pass", "extra_steps": 0, "detect_ms": 21, "heal_ms": 10, "elapsed_ms": 14842, "ts": 1789209352238}
+{"run_id": "v4/composite", "step": "4/4", "status": "pass", "extra_steps": 2, "detect_ms": 77, "heal_ms": 271, "elapsed_ms": 6688, "ts": 1789221476110}

@@ -4349,6 +4349,96 @@
       "steps": 4,
       "extra_steps": 0,
       "heal_ms": 10
+    },
+    {
+      "trial": 483,
+      "variant": 1,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 419
+    },
+    {
+      "trial": 484,
+      "variant": 1,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 946
+    },
+    {
+      "trial": 485,
+      "variant": 1,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 486
+    },
+    {
+      "trial": 486,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 487,
+      "variant": 2,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 488,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 273
+    },
+    {
+      "trial": 489,
+      "variant": 4,
+      "perturb": "extra_step",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 2447
+    },
+    {
+      "trial": 490,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 6,
+      "extra_steps": 1,
+      "heal_ms": 0
+    },
+    {
+      "trial": 491,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 368
+    },
+    {
+      "trial": 492,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 271
     }
   ],
   "clock_delta": {

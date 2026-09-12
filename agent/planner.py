@@ -54,6 +54,9 @@ ENQUIRY_STEPS = DEFAULT_STEPS + [
      "command_ref": "phone_fulfilment_enquiry:5"},
 ]
 
+# Second task shape: compare the top candidates instead of picking one outright.
+COMPARE_HINTS = ("compare", "comparison", "versus", " vs ", "which is better", "top 2", "top two")
+
 # Words that ask for the enquiry/contact step specifically.
 ENQUIRY_HINTS = ("enquiry", "enquire", "inquiry", "inquire", "contact", "quote", "message",
                  "reach out", "get in touch", "ask about")
@@ -178,6 +181,9 @@ def plan_goal(goal: str, workflow: str = WORKFLOW_PHONE) -> Plan:
             plan.params["brand"] = brand
             plan.notes.append(f"brand '{brand}' read from the goal (hard filter, no substitution)")
             break
+    if any(h in text for h in COMPARE_HINTS):
+        plan.params["compare_top2"] = True
+        plan.notes.append("compare task: top candidates checked against Site B, comparison logged")
 
     plan.params = {k: v for k, v in plan.params.items() if v is not None}
     if not plan.params:

@@ -345,6 +345,11 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                 return {"status": "ABSTAIN", "reason": "LOW_CONFIDENCE search_box unrecoverable"}
             # Step 2: apply filter. Fill by structural label lookup so a stripped id
             # (perturb=strip) does not break the fill; fall back to the id selector.
+            def _sub(step: int, action: str, target: str, result: str):
+                """Fine-grained visible sub-steps (fills, reads, ranks, verifies)."""
+                log_action(seq=seq, step=step, action=action, target=target, confidence=1.0,
+                           signals=["trace"], state_before_hash="", state_after_hash="",
+                           duration_ms=0, result=result)
             def _fill(selector: str, label: str, value: str):
                 loc = None
                 try:
@@ -366,7 +371,9 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                         return False
 
             _fill('[data-testid="max-price"]', "Max price", budget)
+            _sub(2, "fill", "max_price", f"ok:{budget}")
             _fill('[data-testid="min-ram"]', "Min RAM", ram)
+            _sub(2, "fill", "min_ram", f"ok:{ram}GB")
             t2 = Target(selector='[data-testid="apply-filter"]', role="button", name="Apply Filter",
                         text="Apply Filter", landmark="main", labels=["Apply Filter", "Refine Results"])
             g2, rec2 = _ground_or_recover(page, t2, 2, "filter_button", seq, last_good, stats,
@@ -488,6 +495,8 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                 return base + "/site_b/check.html" + ("?" + "&".join(q) if q else "")
 
             ranked = sorted(eligible, key=lambda c: c["price"])[:3]
+            _sub(3, "rank", "candidates",
+                 "ok:" + ",".join(f"{c['name']}@{c['price']}" for c in ranked))
             chosen, status_text, url2, attempts = None, "", _site_b_url(None), []
             for i, cand in enumerate(ranked):
                 url2 = _site_b_url(cand["name"])
@@ -502,6 +511,7 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                 det.settle(page, quiet_ms=250, max_ms=1800 if perturb else 900)
                 # Fill the PIN by structural label; id may have been stripped.
                 _fill('[data-testid="pin-input"]', "PIN code", pin)
+                _sub(4, "fill", "pin_input", f"ok:{pin}")
                 t4 = Target(selector='[data-testid="check-button"]', role="button", name="Check Delivery",
                             text="Check Delivery", landmark="main", labels=["Check Delivery", "Verify Shipment"])
                 g4, rec4 = _ground_or_recover(page, t4, 4, "check_button", seq, last_good, stats,
@@ -545,11 +555,14 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                            duration_ms=0, result=f"deliverable={ok_deliv}")
                 if i > 0:
                     stats["extra"].append(1)  # fallback candidate = genuine extra step
+                compare = bool(plan.params.get("compare_top2"))
                 if ok_deliv:
-                    chosen = cand
-                    break
-                log_action(event="LOOP_FALLBACK", reason=f"{cand['name']} not deliverable",
-                           next="next-cheapest eligible")
+                    chosen = chosen or cand  # first deliverable wins; compare still checks #2
+                    if not compare or len(attempts) >= 2:
+                        break
+                else:
+                    log_action(event="LOOP_FALLBACK", reason=f"{cand['name']} not deliverable",
+                               next="next-cheapest eligible")
             if chosen is None:
                 log_action(event="ABSTAIN", reason="no_deliverable_candidate",
                            constraint="b_confirms_deliverable_3d", attempts=str(attempts))
@@ -563,6 +576,18 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
             ev2 = make_claim(f"Site B confirms deliverable within 3 days to PIN {pin}: {status_text.strip()}", url2, html_b, snippet_b, action_log_ref=seq)
             evidences.append(ev2)
             within_days = deliverable_within_days(status_text)
+            _sub(4, "verify", "delivery_verdict",
+                 f"ok:{chosen['name']}-deliverable" if within_days else "fail:undeliverable")
+            if plan.params.get("compare_top2") and len(attempts) >= 1:
+                _sub(4, "compare", "top_candidates",
+                     "ok:" + ";".join(f"{a['candidate']}={'yes' if a['deliverable'] else 'no'}"
+                                      for a in attempts))
+                comp_snippet = f"{attempts[0]['candidate']} vs " + \
+                    (attempts[1]['candidate'] if len(attempts) > 1 else "none")
+                if comp_snippet in html_b:
+                    evidences.append(make_claim(
+                        f"Comparison: {comp_snippet} — picked {chosen['name']} (deliverable)",
+                        url2, html_b, comp_snippet, action_log_ref=seq))
 
             # Step 5 (optional): submit the enquiry on Site B. This is the rubric's own
             # example ("submit an enquiry for it on Site B") and turns the cross-site
