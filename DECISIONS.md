@@ -1,6 +1,6 @@
 # DECISIONS
 
-- 2026-09-12: Repo skeleton created. webcmd kill-gate pending (T+0:30). Default: hand-authored command JSON v1.
+- 2026-09-12: webcmd kill-gate PASSED (mandatory per rules): npm @agentrhq/webcmd 0.8.4, CloakBrowser 146 + doctor binary OK (daemon starts on browser commands), skills in repo (.agents/skills). Site-memory rejects localhost ("Invalid product hostname") so memory loop is N/A for mocks; learn layer = authored adapters voltkart/search + swiftship/check, both verified live. Sandbox lesson: adapter page = goto/evaluate/screenshot only, no locators (probed). Sources in adapters/.
 - 2026-09-12: tau=0.70 initial, calibrate on practiced variants.
 - 2026-09-12: CHAOS adversary agent KILLED (jury call): doubles 6-8h scope, "red vs blue" is a trope, dilutes Task/Adaptation/Recovery (60 pts). Adversary = judge with console. Only.
 - 2026-09-12: Reframe adopted: recovery engine benchmarked on medicine-finder, not a shopper. Phone command JSON = v0 placeholder; medicine swap after variant 1 verifies.

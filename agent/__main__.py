@@ -32,6 +32,7 @@ def main():
     l.add_argument("--goal", default="")
     l.add_argument("--site", default="site_a")
     l.add_argument("--out", default="commands/phone_delivery_check.json")
+    l.add_argument("--base", default="http://127.0.0.1:8000")
     rb = sub.add_parser("rollback")
     rb.add_argument("--workflow", default="phone_delivery_check")
     rb.add_argument("--to", type=int, default=1)
@@ -39,8 +40,9 @@ def main():
     if a.cmd == "run":
         raise SystemExit(cmd_run(a))
     if a.cmd == "learn":
-        from .learner import learn_stub
-        learn_stub(a.goal, a.site, a.out)
+        from .learner import learn_workflow
+        import argparse as _ap
+        print(json.dumps(learn_workflow(a.goal, a.base), indent=2))
         return
     if a.cmd == "rollback":
         from .reflect import rollback

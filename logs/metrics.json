@@ -33,6 +33,15 @@
       "steps": 4,
       "extra_steps": 0,
       "heal_ms": 0
+    },
+    {
+      "trial": 4,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
     }
   ]
 }

@@ -31,7 +31,7 @@ Mocks: mocks/site_a (search/filter/results/product), mocks/site_b (PIN delivery 
 
 ## Models / APIs used
 - Planner/grounding assist: (declare here, e.g. `none/keyless-first` or `model: <name>`). No LLM in hot replay loop.
-- Automation: Playwright (sync API) + webcmd (or hand-authored command JSON fallback per kill-gate).
+- Automation: Playwright (sync API) + webcmd site adapters (`voltkart/search`, `swiftship/check` — sources in `adapters/`, kill-gate PASSED 2026-09-12).
 - Data: JSON command store, JSONL logs, evidence.html plain table (generated from JSON).
 - Server: Flask judge console (localhost only) + static mock server.
 - Declared libs: see `requirements.txt`. Declared templates: `commands/*.json` provenance field.

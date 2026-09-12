@@ -13,5 +13,5 @@
   "preconditions": ["login_not_required", "no_captcha"],
   "negative_case": {"condition": "no_results", "action": "ABSTAIN", "constraint": "max_price AND min_ram"},
   "regression_tests": ["variant_1", "variant_2", "variant_3", "variant_perturbed"],
-  "provenance": {"learned_by": "hand-authored", "learned_at": "2026-09-12T00:00:00", "confidence_at_learn": 0.91}
+  "provenance": {"learned_by": "webcmd", "adapters": ["voltkart/search", "swiftship/check"], "adapter_sources": "adapters/", "learned_at": "2026-09-12", "confidence_at_learn": 0.91}
 }

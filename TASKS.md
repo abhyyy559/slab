@@ -8,6 +8,7 @@
 - [x] `node --check` on `mocks/chaos.js` after every edit (false-negative lesson)
 
 ## Phase 1 — Core loop (done)
+- [x] webcmd kill-gate PASSED (mandatory): adapters `voltkart/search` + `swiftship/check` verified live; `python -m agent learn` works; sources in `adapters/`
 - [x] Repo skeleton (§4) + reset/docs/competition.yaml
 - [x] Mocks served (`/site_a/search.html`, `/site_b/check.html`)
 - [x] Executor (hash chain) + grounder (5-signal, tau=0.70)
