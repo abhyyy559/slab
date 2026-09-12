@@ -179,288 +179,370 @@
 </head>
 <body>
 
+<a class="skip-link" href="#workspace">Skip to workspace</a>
 <header>
-  <div class="brand">SENTRY <span>·</span> CONTROL &amp; TRACE</div>
-  <div class="tag">recovery layer · bench: cheapest deliverable across two sites</div>
-  <div class="pills">
-    <div class="pill" id="p-mocks"><span class="dot" id="d-mocks"></span>mocks <b>:8000</b></div>
-    <div class="pill" id="p-chaos">chaos <b id="b-chaos">none</b></div>
-    <div class="pill" id="p-job">job <b id="b-job">idle</b></div>
+  <div class="header-inner">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">s</span>SENTRY</div>
+    <div class="tag">Browser operator workspace</div>
+    <div class="pills">
+      <div class="pill" id="p-mocks"><span class="dot off" id="d-mocks"></span><span id="state-label">Connecting</span></div>
+      <div class="pill" id="p-chaos">Perturbation <b id="b-chaos">none</b></div>
+      <div class="pill" id="p-job">Job <b id="b-job" role="status">idle</b></div>
+    </div>
   </div>
 </header>
-
-<main>
-  <!-- ------------------------------------------------------------------ controls -->
-  <div class="stack">
-    <section class="panel">
-      <h2>Task</h2>
-      <p class="sub">What you want the agent to do.</p>
-      <textarea id="goal" spellcheck="false">Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days</textarea>
-      <div class="note grey">
-        <b>How the goal is used:</b> it is parsed for budget / RAM / PIN and mapped to a workflow
-        (<code>plan_goal</code>), then logged as a <code>PLAN</code> event you can read in the trace.
-        Explicit parameters below <b>override</b> anything read from the goal.<br>
-        Domains we have no mocks for (medicine, travel, groceries) are <b>refused</b> with an explicit
-        <code>unsupported_goal</code> ABSTAIN instead of silently running the phone workflow.
-        Open-domain transfer is still a published limitation — see <code>FAILURES.md</code>.
-      </div>
-      <div class="note grey">
-        <b>Workflow:</b> two selectable by goal — <code>phone_delivery_check</code> (4 steps) and
-        <code>phone_fulfilment_enquiry</code> (5 steps). Site A VoltKart → Site B SwiftShip.<br>
-        A goal that asks to <b>contact / enquire</b> switches to the 5-step workflow and performs a real
-        cross-site write (the product from Site A becomes the enquiry subject on Site B), gated by approval.<br>
-        <b>Try:</b> <code>cheapest phone under Rs 8000 with at least 12GB RAM</code> ·
-        <code>cheapest mobile under 25000 to pin 500001</code> ·
-        <code>cheapest medicine under Rs 500</code> (refused)
-      </div>
-
-      <!-- Live goal interpreter: the real planner is asked what this goal does,
-           so the routing decision is visible BEFORE the run, not inferred after. -->
-      <div class="interp" id="interp">
-        <div class="interp-hd">
-          <span class="rl">goal interpreter</span>
-          <span class="interp-state" id="interp-state">checking…</span>
+<section class="intro" aria-labelledby="page-title">
+  <div class="eyebrow">A little direction. A visible next step.</div>
+  <h1 id="page-title">Give your browser a goal.</h1>
+  <p>Set your preferences, review the plan, and follow every step.<br>A focused workspace for the demo workflow or an approved read-only site.</p>
+</section>
+<main id="workspace">
+  <section class="panel" aria-labelledby="builder-title">
+    <div class="section-head">
+      <span class="num" aria-hidden="true">01</span>
+      <div><h2 id="builder-title">Build your task</h2><p class="sub">You decide what matters.</p></div>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Workflow mode">
+      <button type="button" id="tab-demo" role="tab" aria-selected="true" aria-controls="demo-pane">Demo workflow</button>
+      <button type="button" id="tab-live" role="tab" aria-selected="false" aria-controls="live-pane" tabindex="-1">Live site (read-only)</button>
+    </div>
+    <form id="task-form" novalidate>
+      <div id="demo-pane" role="tabpanel" aria-labelledby="tab-demo">
+        <label class="f" for="goal">What would you like to find?</label>
+        <textarea id="goal" maxlength="2000" aria-describedby="goal-help" placeholder="Describe a phone and delivery goal…">Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days</textarea>
+        <p class="hint" id="goal-help">Demo only: compare phones on mock Site A and check delivery on mock Site B. Other domains are unsupported. An empty goal previews the default workflow.</p>
+        <div class="pref-heading"><h3>Preferences</h3><span class="sub">Explicit overrides</span></div>
+        <div id="preferences"></div>
+        <label class="f" for="preference-kind">Add a preference</label>
+        <div class="add-pref">
+          <select id="preference-kind" aria-describedby="preference-help"></select>
+          <button type="button" id="btn-add-pref">Add preference</button>
         </div>
-        <div id="interp-body" class="interp-body"></div>
-      </div>
-    </section>
+        <p class="hint" id="preference-help">Only budget, RAM, PIN and brand are supported. Defaults: Rs 20,000 · 8 GB RAM · PIN 500001 · any brand.</p>
+        <p class="note" id="preference-warning"><b>Removing a row does not remove the constraint.</b> It omits your explicit override; the goal-derived value or default applies instead. Present rows override the goal. Check the effective values below.</p>
+        <div class="interp" id="interp" aria-live="polite" aria-atomic="true">
+          <div class="interp-hd"><span class="rl">Plan preview</span><span class="interp-state" id="interp-state">Checking…</span></div>
+          <div id="interp-body" class="interp-body"></div>
+          <div class="error" id="preview-error" role="status"></div>
+        </div>
 
-    <section class="panel">
-      <h2>Scenarios</h2>
-      <p class="sub">Presets set variant + parameter overrides for real.</p>
-      <div class="presets" id="presets"></div>
-    </section>
-
-    <section class="panel">
-      <h2>Parameters</h2>
-      <p class="sub">Blank = use the command file's defaults (20000 / 8 / 500001).</p>
-      <div class="grid3">
-        <div><label class="f">budget (Rs)</label><input type="text" id="budget" placeholder="20000"></div>
-        <div><label class="f">min RAM (GB)</label><input type="text" id="ram" placeholder="8"></div>
-        <div><label class="f">PIN</label><input type="text" id="pin" placeholder="500001"></div>
-        <div><label class="f">brand (hard filter)</label><input type="text" id="brand" placeholder="e.g. pixel"></div>
-      </div>
-      <div class="grid2">
-        <div><label class="f">variant label</label><input type="text" id="variant" value="1"></div>
-
-        <div><label class="f">perturb</label>
+        <details class="fold" id="preset-options">
+          <summary>Start with a scenario <span class="sub">/ six presets</span></summary>
+          <p class="hint">Each preset resets the goal, every preference (including brand), and the perturbation. A selected preset means its parameters still match.</p>
+          <div class="presets" id="presets"></div>
+        </details>
+        <label class="f" for="variant">Scenario ID (log label)</label>
+        <input type="number" id="variant" value="1" min="1" max="6" step="1" aria-describedby="variant-help">
+        <p class="hint" id="variant-help">Presets actually set parameters; changing this number alone does not. Use 1, 2, 3, 4 or 6. Scenario 5 is available only in the Live site tab.</p>
+        <label class="toog"><input type="checkbox" id="approval_modal" checked disabled aria-describedby="approval-help">Require approval before a demo submission</label>
+        <p class="hint" id="approval-help">Always on for individual runs. An enquiry writes only to the local mock; no real message is sent.</p>
+        <details class="fold" id="recovery-controls">
+          <summary>Recovery &amp; regression tools <span class="sub">/ optional</span></summary>
+          <label class="f" for="perturb">Demo perturbation</label>
           <select id="perturb">
-            <option value="">none (clean)</option>
-            <option value="rename">rename — labels swapped</option>
-            <option value="strip">strip — test ids removed</option>
-            <option value="move">move — controls relocated</option>
-            <option value="attrs">attrs — attributes mutated</option>
-            <option value="modal">modal — blocking overlay</option>
-            <option value="extra_step">extra_step — interstitial</option>
-            <option value="throttle">throttle — slow network</option>
-            <option value="ab">ab — alternate result set</option>
-            <option value="swap">swap — list re-rendered</option>
-            <option value="composite">composite — all but ab/swap</option>
-            <option value="chaos_max">chaos_max — everything</option>
-          </select></div>
-      </div>
-      <label class="toog"><input type="checkbox" id="headed" checked> visible browser window</label>
-      <label class="toog"><input type="checkbox" id="approval_modal" checked> require approval modal before submit</label>
-      <label class="toog"><input type="checkbox" id="highlight" checked> highlight grounded elements + changes on the page</label>
-      <label class="toog"><input type="checkbox" id="pause_on_low"> pause for me when grounding confidence is low</label>
-      <div class="rowchk">
-        <div><label class="f">speed (slow-mo ms)</label>
-          <select id="slowmo" style="width:170px">
-            <option value="">fast — no slow-mo</option>
-            <option value="200" selected>demo — 200ms pause</option>
-            <option value="800">slow — 800ms, follow along</option>
+            <option value="">None — clean run</option>
+            <option value="rename">Rename — labels swapped</option>
+            <option value="strip">Strip — test IDs removed</option>
+            <option value="move">Move — controls relocated</option>
+            <option value="attrs">Attributes — controls mutated</option>
+            <option value="modal">Modal — blocking overlay</option>
+            <option value="extra_step">Extra step — interstitial</option>
+            <option value="throttle">Throttle — slow network</option>
+            <option value="ab">A/B — alternate result set</option>
+            <option value="swap">Swap — list re-rendered</option>
+            <option value="composite">Composite — all except A/B and swap</option>
+            <option value="chaos_max">Maximum — all perturbations</option>
           </select>
+          <label class="toog"><input type="checkbox" id="highlight" checked>Highlight matched elements and page changes</label>
+          <label class="toog"><input type="checkbox" id="pause_on_low">Pause when match confidence is low</label>
+          <button type="button" class="wide" id="btn-guard">Run guard · 5 demo scenarios</button>
+          <button type="button" class="wide" id="btn-gauntlet">Run gauntlet · clean + 6 perturbations</button>
+          <div class="row" style="margin-top:8px">
+            <button type="button" class="sm" id="btn-learn">Run learn</button>
+            <button type="button" class="sm" id="btn-bump-good">bump · good</button>
+            <button type="button" class="sm" id="btn-bump-bad">bump · bad</button>
+            <button type="button" class="sm" id="btn-rollback">rollback → v1</button>
+          </div>
+          <p class="note grey">Guard and gauntlet use their own fixed test parameters and <b>auto-approval on local mocks</b>, not the individual-run approval setting.</p>
+          <h3>Inject a mock-page change</h3>
+          <div class="chaos" id="chaos"></div>
+          <div class="row" style="margin-top:14px">
+            <button type="button" class="sm ghost" id="btn-open-a">Open mock Site A</button>
+            <button type="button" class="sm ghost" id="btn-open-b">Open mock Site B</button>
+          </div>
+          <p class="hint">Manual previews open a separate tab. Agent runs use their own browser window.</p>
+        </details>
+      </div>
+      <div id="live-pane" role="tabpanel" aria-labelledby="tab-live" hidden>
+        <span class="badge">Scenario 5 · read-only</span>
+        <label class="f" for="site">Approved site</label>
+        <input type="url" id="site" value="https://books.toscrape.com/" required aria-describedby="live-scope">
+        <div class="note safe" id="live-scope">
+          <b>Books to Scrape · first page ONLY</b>
+          <p>Read the first catalogue page and find the cheapest book within your GBP budget. No pagination, purchases or messages.</p>
+          <p>No Amazon or Flipkart, no booking sites, no login and no CAPTCHA solving or bypass. If access is blocked, the run stops with an explicit reason.</p>
         </div>
-        <div><label class="f">keep window open (ms)</label><input type="text" id="keep_open" placeholder="6000" style="width:100px"></div>
+        <label class="f" for="live_budget">Book budget (GBP)</label>
+        <input type="number" id="live_budget" value="20" min="0.01" step="any" required aria-describedby="live-budget-help">
+        <p class="hint" id="live-budget-help">Live mode uses this GBP budget, not the demo phone preferences.</p>
+        <label class="toog"><input type="checkbox" id="permission_confirmed" required aria-describedby="permission-help">I confirm permission to read this approved site's first page.</label>
+        <p class="hint" id="permission-help">Required for every live probe. No live request starts without this confirmation.</p>
       </div>
-      <button class="primary wide" id="btn-run">▶ Run agent</button>
-      <div class="hint" id="argv-hint"></div>
-      <div class="note grey" id="window-note"></div>
-    </section>
+      <details class="fold" id="browser-options">
+        <summary>Browser options <span class="sub">/ both modes</span></summary>
+        <label class="toog"><input type="checkbox" id="headed" checked>Show the browser window</label>
+        <div class="grid2">
+          <div><label class="f" for="slowmo">Slow motion (ms)</label><input type="number" id="slowmo" value="200" min="0" max="2000" step="any" required></div>
+          <div><label class="f" for="keep_open">Keep window open (ms)</label><input type="number" id="keep_open" value="4000" min="0" max="60000" step="any" required></div>
+        </div>
+        <p class="hint" id="window-note"></p>
+        <p class="hint mono" id="argv-hint"></p>
+      </details>
+      <div class="error" id="form-error" role="status" aria-live="polite" aria-atomic="true"></div>
+      <button type="submit" class="primary wide" id="btn-run">Run demo workflow <span aria-hidden="true">&rarr;</span></button>
+      <button type="submit" class="primary wide" id="btn-probe" hidden>Read approved first page <span aria-hidden="true">&rarr;</span></button>
+      <p class="hint" id="run-help">Local mock sites only. Review the plan before you run.</p>
+    </form>
+  </section>
 
-    <section class="panel">
-      <h2>Regression &amp; learning</h2>
-      <p class="sub">Guard = 5 variants. Bump = propose a lesson, accept only if the guard stays green.</p>
-      <button class="wide" id="btn-guard" style="margin-top:4px">Run full guard (5 variants)</button>
-      <button class="wide" id="btn-gauntlet" style="margin-top:4px">Run chaos matrix (clean + 6 perturbs)</button>
-      <button class="wide" id="btn-learn" style="margin-top:4px">Run learn (webcmd adapters → rows)</button>
-      <div class="row" style="margin-top:8px">
-        <input type="text" id="site" placeholder="https://books.toscrape.com/" style="flex:1">
-        <button class="sm" id="btn-probe">probe live site</button>
+  <section class="panel" aria-labelledby="results-title">
+    <div class="section-head">
+      <span class="num" aria-hidden="true">02</span>
+      <div><h2 id="results-title">See what happens</h2><p class="sub">The outcome, with evidence behind it.</p></div>
+      <span class="badge">Traceable by design</span>
+    </div>
+    <div class="error" id="trace-error" role="status" aria-live="polite"></div>
+    <div class="jobbar" id="jobbar"></div>
+    <div id="planrail"></div>
+    <div id="result" aria-live="polite">
+      <div class="empty-result">
+        <div class="empty-mark" aria-hidden="true">↗</div>
+        <h3>A clear goal. A grounded result.</h3>
+        <p>Your chosen item, checked constraints and source evidence will appear here.</p>
       </div>
-      <div class="note grey">Read-only probe. Login/CAPTCHA/blocks ABSTAIN with a named reason — never bypassed.</div>
-      <div class="row" style="margin-top:8px">
-        <button class="sm" id="btn-bump-good">propose bump · good</button>
-        <button class="sm" id="btn-bump-bad">propose bump · bad</button>
-        <button class="sm" id="btn-rollback">rollback → v1</button>
-      </div>
-      <div class="note grey">Bump/guard use auto-approval internally, so no modal interrupts them.</div>
-    </section>
-
-    <section class="panel">
-      <h2>Live chaos</h2>
-      <p class="sub">The mock pages poll <code>/status</code> every 600ms. Inject while a run is going.</p>
-      <div class="chaos" id="chaos"></div>
-      <div class="note grey">For a fully deterministic run use the <code>composite</code> perturb preset above instead.</div>
-      <div class="row" style="margin-top:12px">
-        <button class="sm ghost" id="btn-open-a">open Site A ↗</button>
-        <button class="sm ghost" id="btn-open-b">open Site B ↗</button>
-      </div>
-      <div class="note grey">These open in a <b>new tab of your current browser</b> for a manual look.
-        The agent uses its own separate window — see the note under the run button.</div>
-    </section>
-  </div>
-
-  <!-- --------------------------------------------------------------------- trace -->
-  <div class="stack">
-    <section class="panel">
-      <h2>Live trace</h2>
-      <p class="sub">Streamed from <code>logs/*.jsonl</code> + stdout. Times are ms since the job started.</p>
-      <div id="planrail"></div>
-      <div class="jobbar" id="jobbar"></div>
-      <div id="timeline"></div>
-      <details class="raw"><summary>raw stdout</summary><pre class="raw" id="raw">—</pre></details>
-    </section>
-
-    <section class="panel">
-      <h2>Result</h2>
-      <p class="sub">Final payload. Evidence rows are extractive: verbatim snippet + char offset + sha256.</p>
-      <div id="result"></div>
-    </section>
-
-    <section class="panel">
-      <h2>Run history</h2>
-      <p class="sub">Persisted to <code>logs/dashboard-runs.jsonl</code>. Click a row to reload its result card.</p>
+    </div>
+    <details class="fold" id="trace-details" open>
+      <summary>Live trace <span class="sub">/ step by step</span></summary>
+      <div id="timeline" role="log" aria-label="Browser action trace" aria-live="polite"></div>
+      <details class="raw" id="recovery-details">
+        <summary>Recovery &amp; integrity trace</summary>
+        <div id="recovery-timeline" role="log" aria-label="Recovery and integrity events"></div>
+      </details>
+      <details class="raw"><summary>Raw output</summary><pre class="raw" id="raw">—</pre></details>
+    </details>
+    <details class="fold" id="history-details">
+      <summary>Run history <span class="sub">/ revisit an outcome</span></summary>
+      <p class="hint">Select a recorded run to load its result and final plan.</p>
+      <div class="error" id="history-error" role="status" aria-live="polite"></div>
       <div id="costbar" class="hint"></div>
       <div id="history"></div>
-    </section>
-
-    <section class="panel" id="docs-panel">
-      <h2>Audit &amp; docs</h2>
-      <p class="sub">Read live from the repo — never a copy. Pick a file, or jump to the rubric.</p>
-      <div class="docbar" id="docs-tabs"></div>
-      <details class="raw" id="doc-wrap" open>
-        <summary id="doc-title">select a document</summary>
-        <pre class="raw docview" id="doc-body">—</pre>
-      </details>
-      <div class="hint" id="doc-meta"></div>
-    </section>
-  </div>
+    </details>
+  </section>
 </main>
+<footer><span>SENTRY / Browser workspace</span><span>Local demo workflows. Approved live reading. Visible evidence.</span></footer>
 
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const ms = v => (v === null || v === undefined) ? "—" : v + " ms";
 
-const PRESETS = {
-  clean:      {variant:"1", perturb:"",          budget:"",     ram:"",  pin:"",       label:"Clean run", sub:"v1 · default params"},
-  enquiry:    {variant:"1", perturb:"",          budget:"",     ram:"",  pin:"",       label:"Clean run (+enquiry)", sub:"v1 · full 2-site workflow, 5 steps"},
-  chaos:      {variant:"4", perturb:"composite", budget:"",     ram:"",  pin:"",       label:"Composite chaos", sub:"v4 · rename/strip/move/attrs + modal"},
-  chaosmax:   {variant:"4", perturb:"chaos_max", budget:"",     ram:"",  pin:"",       label:"Chaos max", sub:"v4 · everything incl. ab + swap"},
-  strip:      {variant:"4", perturb:"strip",     budget:"",     ram:"",  pin:"",       label:"Strip test ids", sub:"v4 · agent must go structural"},
-  infeasible: {variant:"6", perturb:"",          budget:"8000", ram:"12",pin:"",       label:"Infeasible", sub:"8k @ 12GB → must ABSTAIN"},
-  badpin:     {variant:"3", perturb:"",          budget:"",     ram:"",  pin:"500002", label:"Bad PIN", sub:"v3 · unserviceable → ABSTAIN"},
-  tight:      {variant:"2", perturb:"",          budget:"25000",ram:"",  pin:"",       label:"Tight budget", sub:"v2 · 25k changes the pick"},
-  solo_shuffle:    {variant:"4", perturb:"shuffle",    budget:"", ram:"", pin:"", label:"Solo: shuffle", sub:"v4 · layout only"},
-  solo_rename:     {variant:"4", perturb:"rename",     budget:"", ram:"", pin:"", label:"Solo: rename", sub:"v4 · labels only"},
-  solo_modal:      {variant:"4", perturb:"modal",      budget:"", ram:"", pin:"", label:"Solo: modal", sub:"v4 · overlay only"},
-  solo_extra_step: {variant:"4", perturb:"extra_step", budget:"", ram:"", pin:"", label:"Solo: extra step", sub:"v4 · interstitial only"},
-  solo_throttle:   {variant:"4", perturb:"throttle",   budget:"", ram:"", pin:"", label:"Solo: throttle", sub:"v4 · slow net only"},
-  solo_composite:  {variant:"4", perturb:"composite",  budget:"", ram:"", pin:"", label:"Solo: composite", sub:"v4 · everything"},
-};
-
-/* Goals are the real driver: the planner inspects the text. A goal mentioning
-   contact/enquiry switches to the 5-step cross-site-write workflow. */
 const GOALS = {
   delivery: "Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days",
-  enquiry:  "Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days and submit an enquiry for it on Site B",
+  enquiry: "Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days and submit an enquiry for it on Site B",
 };
+const PRESETS = {
+  clean: {variant:1, perturb:"", budget:20000, ram:8, pin:"500001", brand:null, label:"Baseline", sub:"v1 · Rs 20,000 · 8 GB · PIN 500001"},
+  tight: {variant:2, perturb:"", budget:25000, ram:8, pin:"500001", brand:null, label:"Budget Rs 25,000", sub:"v2 · 8 GB · PIN 500001 · clean"},
+  badpin: {variant:3, perturb:"", budget:20000, ram:8, pin:"500002", brand:null, label:"Unserviceable PIN", sub:"v3 · PIN 500002 · Rs 20,000 · 8 GB"},
+  chaos: {variant:4, perturb:"composite", budget:20000, ram:8, pin:"500001", brand:null, label:"Composite recovery", sub:"v4 · baseline preferences + composite"},
+  infeasible: {variant:6, perturb:"", budget:8000, ram:12, pin:"500001", brand:null, label:"No feasible match", sub:"v6 · Rs 8,000 · 12 GB · PIN 500001"},
+  enquiry: {variant:1, perturb:"", budget:20000, ram:8, pin:"500001", brand:null, label:"Mock enquiry", sub:"v1 · baseline + enquiry · no real message"},
+  solo_shuffle: {variant:4, perturb:"shuffle", budget:20000, ram:8, pin:"500001", brand:null, label:"Solo: shuffle", sub:"v4 · layout only"},
+  solo_rename: {variant:4, perturb:"rename", budget:20000, ram:8, pin:"500001", brand:null, label:"Solo: rename", sub:"v4 · labels only"},
+  solo_modal: {variant:4, perturb:"modal", budget:20000, ram:8, pin:"500001", brand:null, label:"Solo: modal", sub:"v4 · overlay only"},
+  solo_extra_step: {variant:4, perturb:"extra_step", budget:20000, ram:8, pin:"500001", brand:null, label:"Solo: extra step", sub:"v4 · interstitial only"},
+  solo_throttle: {variant:4, perturb:"throttle", budget:20000, ram:8, pin:"500001", brand:null, label:"Solo: throttle", sub:"v4 · slow net only"},
+  solo_composite: {variant:4, perturb:"composite", budget:20000, ram:8, pin:"500001", brand:null, label:"Solo: composite", sub:"v4 · everything"},
+};
+const PREFERENCES = {
+  budget: {label:"Budget (Rs)", value:"20000", type:"number", min:1, max:10000000},
+  ram: {label:"Minimum RAM (GB)", value:"8", type:"number", min:1, max:128},
+  pin: {label:"Delivery PIN", value:"500001", type:"text"},
+  brand: {label:"Brand", value:"", type:"text"},
+};
+const APPROVED_SITE = "https://books.toscrape.com/";
 const CHAOS = ["rename","strip","move","attrs","modal","extra_step","throttle","ab","swap","composite","chaos_max","reset"];
+let es = null, jobId = null, t0 = null, running = false, starting = false, mode = "demo";
 
-let es = null, jobId = null, t0 = null, running = false;
-
-/* ---------------------------------------------------------------- controls */
-function applyPreset(name) {
-  const p = PRESETS[name];
-  $("#variant").value = p.variant;
-  $("#perturb").value = p.perturb;
-  $("#budget").value = p.budget;
-  $("#ram").value = p.ram;
-  $("#pin").value = p.pin;
-  // The goal drives the plan: a contact/enquiry goal selects the 5-step workflow.
-  if (name === "enquiry") $("#goal").value = GOALS.enquiry;
-  else if (name === "clean") $("#goal").value = GOALS.delivery;
-  document.querySelectorAll("#presets button").forEach(b => b.classList.toggle("sel", b.dataset.k === name));
-  hint();
+function invalid(id, message) {
+  const error = new Error(message);
+  error.field = $("#" + id);
+  error.field.setAttribute("aria-invalid", "true");
+  throw error;
 }
-function params() {
-  return {
-    goal: $("#goal").value.trim(),
-    variant: parseInt($("#variant").value || "1", 10) || 1,
-    perturb: $("#perturb").value,
-    budget: $("#budget").value.trim() === "" ? null : parseInt($("#budget").value, 10),
-    ram: $("#ram").value.trim() === "" ? null : parseInt($("#ram").value, 10),
-    pin: $("#pin").value.trim() || null,
-    brand: $("#brand").value.trim().toLowerCase() || null,
-    headed: $("#headed").checked,
-    approval_modal: $("#approval_modal").checked,
-    pause_on_low: $("#pause_on_low") && $("#pause_on_low").checked,
-    no_highlight: !($("#highlight") && $("#highlight").checked),
-    slowmo: ($("#slowmo") && $("#slowmo").value.trim()) || null,
-    keep_open: ($("#keep_open") && $("#keep_open").value.trim()) || null,
-  };
-}
-function hint() {
-  const p = params(), bits = ["--variant " + p.variant];
-  if (p.perturb) bits.push("--perturb " + p.perturb);
-  if (p.budget !== null) bits.push("--budget " + p.budget);
-  if (p.ram !== null) bits.push("--ram " + p.ram);
-  if (p.pin) bits.push("--pin " + p.pin);
-  if (p.brand) bits.push("--brand " + p.brand);
-  if (p.headed) bits.push("--headed");
-  if (p.slowmo) bits.push("--slowmo " + p.slowmo);
-  if (p.keep_open) bits.push("--keep-open " + p.keep_open);
-  if (p.pause_on_low) bits.push("--pause-on-low");
-  if (p.no_highlight) bits.push("--no-highlight");
-  if (p.approval_modal) bits.push("--no-yes");
-  $("#argv-hint").textContent = "python -m agent run " + bits.join(" ");
-  const wn = $("#window-note");
-  if (wn) {
-    wn.innerHTML = p.headed
-      ? "Headed run: <b>one</b> Chromium window opens, raised to the front, then <b>closes itself</b> "
-        + "when the run finishes (after " + esc(p.keep_open || "4000") + " ms on the last frame). "
-        + "It uses its own dedicated window — your browser tabs are untouched."
-      : "Headless run: no window opens. The trace below is the only view.";
+function showError(selector, error, focus = false) {
+  $(selector).textContent = error.message || String(error);
+  if (focus && error.field) {
+    for (let el = error.field.parentElement; el; el = el.parentElement) {
+      if (el.tagName === "DETAILS") el.open = true;
+    }
+    error.field.focus();
   }
 }
-
-for (const [k, p] of Object.entries(PRESETS)) {
+async function api(url, body) {
+  let response;
+  try {
+    response = await fetch(url, body === undefined ? {} : {
+      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)
+    });
+  } catch (e) { throw new Error("Could not reach the console. Check the connection and try again."); }
+  let data;
+  try { data = await response.json(); }
+  catch (e) { throw new Error("The console returned an unreadable response (HTTP " + response.status + ")."); }
+  if (!response.ok || data.error) {
+    const message = typeof data.error === "string" ? data.error : data.error ? JSON.stringify(data.error) : "Request failed";
+    throw new Error(message + " (HTTP " + response.status + ")");
+  }
+  return data;
+}
+function numberValue(id, label, min, max, integer = false) {
+  const raw = $("#" + id).value.trim(), value = Number(raw);
+  if (!raw || !Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) {
+    invalid(id, label + " must be " + (integer ? "a whole number" : "a number") + " from " + min + " to " + max + ".");
+  }
+  return value;
+}
+function browserParams() {
+  return {
+    headed:$("#headed").checked,
+    slowmo:numberValue("slowmo", "Slow motion", 0, 2000),
+    keep_open:numberValue("keep_open", "Keep window open", 0, 60000),
+  };
+}
+function params() {
+  const goal = $("#goal").value;
+  if (goal.length > 2000) invalid("goal", "Keep the goal to 2,000 characters or fewer.");
+  const variant = numberValue("variant", "Scenario ID", 1, 6, true);
+  if (variant === 5) invalid("variant", "Scenario 5 is live-only. Choose the Live site tab, or use 1, 2, 3, 4 or 6 here.");
+  const p = {goal:goal.trim(), variant, perturb:$("#perturb").value};
+  for (const [key, spec] of Object.entries(PREFERENCES)) {
+    const field = $("#" + key);
+    if (!field) continue; // Removed rows omit the override; the server resolves goal/default values.
+    if (spec.type === "number") p[key] = numberValue(key, spec.label, spec.min, spec.max, true);
+    else if (key === "pin") {
+      if (!/^\d{6}$/.test(field.value)) invalid(key, "PIN must contain exactly six digits. Remove the row to use the goal or default.");
+      p.pin = field.value;
+    } else {
+      if (!field.value.trim() || field.value.length > 40 || /[\x00-\x1f\x7f-\x9f]/.test(field.value)) {
+        invalid(key, "Brand must be 1–40 characters with no control characters. Remove the row for no explicit brand override.");
+      }
+      p.brand = field.value.trim();
+    }
+  }
+  if (!$("#approval_modal").checked) invalid("approval_modal", "Approval is required for individual demo runs.");
+  return {...p, ...browserParams(), approval_modal:true, pause_on_low:$("#pause_on_low").checked, no_highlight:!$("#highlight").checked};
+}
+function probeParams() {
+  const raw = $("#site").value.trim();
+  let url;
+  try { url = new URL(raw); } catch (e) { invalid("site", "Use the approved HTTPS Books to Scrape first-page URL."); }
+  if (url.href !== APPROVED_SITE || /[\x00-\x20\x7f]/.test(raw)) {
+    invalid("site", "Only https://books.toscrape.com/ is approved. Other sites, paths, queries and page numbers are not allowed.");
+  }
+  const budget = numberValue("live_budget", "Book budget (GBP)", 0.01, 10000000);
+  if (!$("#permission_confirmed").checked) invalid("permission_confirmed", "Confirm permission before reading the approved site's first page.");
+  return {site_url:url.href, budget, permission_confirmed:$("#permission_confirmed").checked, ...browserParams()};
+}
+function refreshPreferenceChoices() {
+  const select = $("#preference-kind"), previous = select.value;
+  select.innerHTML = Object.entries(PREFERENCES).filter(([key]) => !$("#" + key))
+    .map(([key, spec]) => '<option value="' + key + '">' + esc(spec.label) + '</option>').join("");
+  if (!select.options.length) select.innerHTML = '<option value="">All preferences added</option>';
+  if ([...select.options].some(o => o.value === previous)) select.value = previous;
+  select.disabled = !select.value;
+  $("#btn-add-pref").disabled = !select.value;
+}
+function addPreference(key, value) {
+  if (!Object.hasOwn(PREFERENCES, key) || $("#" + key)) return;
+  const spec = PREFERENCES[key], row = document.createElement("div");
+  row.className = "preference-row";
+  row.innerHTML = '<label for="' + key + '">' + esc(spec.label) + '</label><input id="' + key + '" type="' + spec.type
+    + '" required aria-describedby="preference-warning"' + (spec.type === "number" ? ' min="' + spec.min + '" max="' + spec.max + '" step="1"' : '')
+    + (key === "pin" ? ' inputmode="numeric" pattern="[0-9]{6}" maxlength="6"' : '')
+    + (key === "brand" ? ' maxlength="40" placeholder="e.g. pixel"' : '') + '><button type="button" class="sm ghost" aria-label="Remove ' + esc(spec.label) + ' preference">Remove</button>';
+  row.querySelector("input").value = value ?? spec.value;
+  row.querySelector("button").onclick = () => {
+    row.remove(); refreshPreferenceChoices(); changed(); $("#preference-kind").focus();
+  };
+  $("#preferences").appendChild(row);
+  refreshPreferenceChoices();
+}
+function syncPresetSelection() {
+  document.querySelectorAll("#presets button").forEach(button => {
+    const p = PRESETS[button.dataset.k];
+    const matched = $("#goal").value === GOALS[button.dataset.k === "enquiry" ? "enquiry" : "delivery"]
+      && $("#variant").value === String(p.variant) && $("#perturb").value === p.perturb
+      && Object.keys(PREFERENCES).every(key => p[key] === null ? !$("#" + key) : $("#" + key)?.value === String(p[key]));
+    button.classList.toggle("sel", matched);
+    button.setAttribute("aria-pressed", String(matched));
+  });
+}
+function applyPreset(name) {
+  const p = PRESETS[name];
+  if (!p) return;
+  $("#goal").value = GOALS[name === "enquiry" ? "enquiry" : "delivery"];
+  $("#variant").value = p.variant;
+  $("#perturb").value = p.perturb;
+  $("#preferences").replaceChildren();
+  for (const key of Object.keys(PREFERENCES)) if (p[key] !== null) addPreference(key, p[key]);
+  refreshPreferenceChoices(); changed();
+}
+function hint() {
+  try {
+    const p = browserParams();
+    $("#window-note").textContent = p.headed
+      ? "A separate browser window closes " + p.keep_open + " ms after completion. Your existing tabs are untouched."
+      : "No browser window will open. Follow the trace on the right.";
+    $("#argv-hint").textContent = "Browser: " + (p.headed ? "visible" : "headless") + " · slow motion " + p.slowmo + " ms · keep open " + p.keep_open + " ms";
+  } catch (e) { $("#window-note").textContent = "Check the browser options."; $("#argv-hint").textContent = e.message; }
+}
+function changed() {
+  document.querySelectorAll("#task-form [aria-invalid]").forEach(el => el.removeAttribute("aria-invalid"));
+  $("#form-error").textContent = "";
+  hint(); syncPresetSelection(); scheduleInterp();
+}
+function setMode(next) {
+  mode = next;
+  const live = mode === "live";
+  for (const name of ["demo", "live"]) {
+    const selected = name === mode;
+    $("#tab-" + name).setAttribute("aria-selected", String(selected));
+    $("#tab-" + name).tabIndex = selected ? 0 : -1;
+    $("#" + name + "-pane").hidden = !selected;
+  }
+  $("#btn-run").hidden = live;
+  $("#btn-probe").hidden = !live;
+  $("#run-help").textContent = live ? "Read-only, first page only. Nothing is bought, booked or sent." : "Local mock sites only. Review the plan before you run.";
+  changed();
+}
+for (const [key, p] of Object.entries(PRESETS)) {
   const b = document.createElement("button");
-  b.dataset.k = k;
+  b.type = "button"; b.dataset.k = key;
   b.innerHTML = esc(p.label) + "<small>" + esc(p.sub) + "</small>";
-  b.onclick = () => applyPreset(k);
+  b.onclick = () => applyPreset(key);
   $("#presets").appendChild(b);
 }
 for (const c of CHAOS) {
   const b = document.createElement("button");
-  b.textContent = c;
-  b.dataset.c = c;
+  b.type = "button"; b.textContent = c; b.dataset.c = c;
   b.onclick = async () => {
-    // single round trip: the POST itself returns the full state, so the badge cannot
-    // go stale waiting on a second request.
-    try {
-      const s = await (await fetch("/perturb/" + c, { method: "POST" })).json();
-      paintState(s.active);
-    } catch (e) {
-      paintState(c === "reset" ? null : c);   // optimistic; the 2.5s poll corrects it
-    }
+    b.disabled = true;
+    try { paintState((await api("/perturb/" + c, {})).active); $("#form-error").textContent = ""; }
+    catch (e) { showError("#form-error", e); }
+    finally { b.disabled = false; }
   };
   $("#chaos").appendChild(b);
 }
-["#goal","#variant","#perturb","#budget","#ram","#pin","#brand","#headed","#approval_modal","#slowmo",
- "#highlight","#pause_on_low"]
-  .forEach(s => { const e = $(s); if (e) e.addEventListener("input", hint); });
 
 /* ------------------------------------------------------- goal interpreter */
 /* Ask the real planner (server-side, same function the agent calls) what this
@@ -473,145 +555,107 @@ const STEP_SITE_SHORT  = { open_search:"A", apply_filter:"A", extract_cheapest:"
 let interpTimer = null, interpReq = 0;
 
 function scheduleInterp() {
-  if (interpTimer) clearTimeout(interpTimer);
+  clearTimeout(interpTimer);
+  ++interpReq; // Invalidate in-flight replies immediately, not after the debounce.
+  if (mode !== "demo") return;
+  $("#interp-state").textContent = "Updating…";
+  $("#interp-state").className = "interp-state";
+  $("#interp-body").textContent = "Checking the full goal and current overrides…";
+  $("#preview-error").textContent = "";
   interpTimer = setTimeout(runInterp, 260);
 }
 
 async function runInterp() {
-  const goal = $("#goal").value.trim();
-  const box = $("#interp-body"), st = $("#interp-state");
-  if (!goal) {
-    st.textContent = "no goal"; st.className = "interp-state warn";
-    box.innerHTML = '<span style="color:var(--dim)">Type a goal to see which workflow it selects.</span>';
-    return;
-  }
   const req = ++interpReq;
-  st.textContent = "…"; st.className = "interp-state";
+  const box = $("#interp-body"), st = $("#interp-state");
   let j;
   try {
-    j = await (await fetch("/api/plan", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ goal })
-    })).json();
+    const p = params();
+    st.textContent = "Checking…"; st.className = "interp-state";
+    $("#preview-error").textContent = "";
+    j = await api("/api/plan", p);
   } catch (e) {
-    if (req === interpReq) { st.textContent = "offline"; st.className = "interp-state bad"; }
+    if (req === interpReq) {
+      st.textContent = e.field ? "Check fields" : "Unavailable"; st.className = "interp-state bad";
+      box.textContent = "No current plan preview. Correct the fields or retry after the connection is restored.";
+      showError("#preview-error", e);
+    }
     return;
   }
-  if (req !== interpReq) return;                 // a newer keystroke already answered
-  if (j.error) { st.textContent = "error"; st.className = "interp-state bad";
-                 box.innerHTML = '<span style="color:var(--red)">' + esc(j.error) + "</span>"; return; }
-
+  if (req !== interpReq) return;
+  const ps = Object.keys(PREFERENCES).map(key => {
+    const value = j.params?.[key];
+    const source = j.param_sources?.[key];
+    return '<span>' + esc(PREFERENCES[key].label) + ' <b>'
+      + esc(value ?? (key === "brand" ? "Any brand" : "Not returned")) + '</b><small>'
+      + esc(source ? "Source: " + source : "Source not returned") + '</small></span>';
+  }).join("");
+  const effective = '<div class="iparams">' + ps + '</div>';
   if (!j.supported) {
-    st.textContent = "refused"; st.className = "interp-state bad";
-    box.innerHTML = "<b>ABSTAIN · unsupported_goal</b><br>"
-      + esc((j.unsupported || []).join("; ") || "goal did not map to a known workflow")
-      + '<br><span style="color:var(--dim)">No browser is launched. Nothing is submitted.</span>';
+    st.textContent = "Unsupported"; st.className = "interp-state bad";
+    box.innerHTML = '<b>ABSTAIN · unsupported_goal</b><br>'
+      + esc((j.unsupported || []).join("; ") || "This goal does not map to a supported demo workflow.")
+      + '<br>No browser is launched for this goal.' + effective;
     return;
   }
   const isEnq = j.workflow === "phone_fulfilment_enquiry";
-  st.textContent = isEnq ? "5 steps · cross-site write" : "4 steps";
-  st.className = "interp-state " + (isEnq ? "ok" : "ok");
-
-  const chain = (j.steps || []).map((s, i) =>
-    '<span class="ichip' + (s === "submit_enquiry" ? " enq" : "") + '">'
-    + '<span class="n">' + (i + 1) + "</span>" + esc(STEP_LABEL_SHORT[s] || s)
-    + '<span class="s">site ' + esc(STEP_SITE_SHORT[s] || "?") + "</span></span>"
-  ).join('<span class="arrow">&rarr;</span>');
-
-  const ps = Object.entries(j.params || {})
-    .map(([k, v]) => "<span>" + esc(k) + " = " + esc(v) + "</span>").join("");
-
-  let html = "workflow <code>" + esc(j.workflow) + "</code>"
-    + '<div class="ichain">' + chain + "</div>";
-  html += '<div class="iparams">' + (ps || '<span style="color:var(--dim)">params: command defaults (20000 / 8 / 500001)</span>') + "</div>";
-  if (isEnq) {
-    html += '<div style="margin-top:6px;color:var(--green)">Includes an irreversible cross-site write '
-          + "on Site B — it runs on the approval gate and only after delivery is confirmed.</div>";
-  }
-  if ((j.notes || []).length) {
-    html += '<div style="margin-top:6px;color:var(--dim)">' + esc(j.notes.join(" · ")) + "</div>";
-  }
-  box.innerHTML = html;
+  st.textContent = (j.steps || []).length + " steps" + (isEnq ? " · mock enquiry" : " · demo");
+  st.className = "interp-state ok";
+  const chain = (j.steps || []).map((step, i) => {
+    const s = typeof step === "string" ? step : step.intent;
+    return '<span class="ichip"><span class="n">' + (i + 1) + '</span>' + esc(STEP_LABEL_SHORT[s] || s)
+      + '<span class="s">site ' + esc(STEP_SITE_SHORT[s] || "?") + '</span></span>';
+  }).join('<span class="arrow">&rarr;</span>');
+  box.innerHTML = '<b>' + (isEnq ? "Compare, check delivery, then request a mock enquiry" : "Compare phones and check delivery") + '</b>'
+    + '<div class="ichain">' + chain + '</div>' + effective
+    + (isEnq ? '<p class="hint">Enquiry is mock-only, requires approval and sends no real message.</p>' : "")
+    + ((j.notes || []).length ? '<p class="hint">' + esc(j.notes.join(" · ")) + '</p>' : "");
 }
-
-/* ----------------------------------------------------------- doc explorer */
-let docsLoaded = false, docActive = null;
-
-async function loadDocs() {
-  const tabs = $("#docs-tabs");
-  let j;
-  try { j = await (await fetch("/api/docs")).json(); }
-  catch (e) { tabs.innerHTML = '<span class="hint">docs unavailable</span>'; return; }
-  const docs = j.docs || [];
-  if (!docs.length) { tabs.innerHTML = '<span class="hint">no docs found</span>'; return; }
-
-  tabs.innerHTML = "";
-  for (const d of docs) {
-    const b = document.createElement("button");
-    b.textContent = d.name;
-    b.title = d.desc + " · " + Math.round(d.bytes / 1024) + " KB";
-    b.dataset.name = d.name;
-    b.onclick = () => showDoc(d.name);
-    tabs.appendChild(b);
-  }
-  // rubric is not a markdown doc — it is the scoring sheet, pulled from the repo.
-  const rb = document.createElement("button");
-  rb.textContent = "competition.yaml (rubric)";
-  rb.dataset.name = "__rubric__";
-  rb.onclick = () => showDoc("__rubric__");
-  tabs.appendChild(rb);
-
-  docsLoaded = true;
-  if (!docActive) showDoc(docs[0].name);
-}
-
-async function showDoc(name) {
-  docActive = name;
-  document.querySelectorAll("#docs-tabs button").forEach(b =>
-    b.classList.toggle("on", b.dataset.name === name));
-  const title = $("#doc-title"), body = $("#doc-body"), meta = $("#doc-meta");
-  title.textContent = name === "__rubric__" ? "competition.yaml" : name;
-  body.textContent = "loading…";
-
-  const url = name === "__rubric__" ? "/api/rubric" : "/api/docs/" + encodeURIComponent(name);
-  let j;
-  try { j = await (await fetch(url)).json(); }
-  catch (e) { body.textContent = "could not load " + name; return; }
-  if (j.error) { body.textContent = j.error; meta.textContent = ""; return; }
-  body.textContent = j.text || "(empty)";
-  const when = j.mtime ? new Date(j.mtime).toLocaleString() : "";
-  meta.textContent = (j.desc ? j.desc + " · " : "")
-    + Math.round((j.text || "").length / 1024) + " KB · live from the repo"
-    + (when ? " · modified " + when : "");
-}
-
-function refreshDocs() { if (!docsLoaded) loadDocs(); else { loadDocs(); } }
 
 /* -------------------------------------------------------------------- start */
-async function start(action, extra = {}) {
-  if (running) return;
-  const body = Object.assign({ action }, action === "run" ? params() : {}, extra);
-  const r = await fetch("/api/run", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
-  });
-  const j = await r.json();
-  if (j.error) { alert(j.error); return; }
-  begin(j.id, j.argv);
+async function start(action) {
+  if (running || starting) return;
+  $("#form-error").textContent = "";
+  let body;
+  try {
+    const p = action === "probe" ? probeParams() : params();
+    body = {action, ...(action === "run" || action === "probe" || action === "gauntlet" ? p : {})};
+  } catch (e) { showError("#form-error", e, true); return; }
+  starting = true;
+  setRunning(true);
+  try {
+    const j = await api("/api/run", body);
+    if (!j.id) throw new Error("The console did not return a job ID. Check history before trying again.");
+    if (action === "probe") $("#permission_confirmed").checked = false;
+    begin(j.id, j.argv);
+  } catch (e) { showError("#form-error", e); }
+  finally { starting = false; setRunning(running); }
 }
 
 function begin(id, argv) {
   jobId = id; t0 = null; running = true;
   $("#timeline").innerHTML = "";
+  $("#recovery-timeline").innerHTML = "";
+  $("#trace-error").textContent = "";
+  $("#jobbar").innerHTML = "";
+  $("#trace-details").open = true;
   $("#result").innerHTML = "";
   $("#raw").textContent = "—";
   planState = null; activeStep = -1; pendingHeals = []; jobAction = null;
   renderPlan();
   setRunning(true);
-  traceLine({ cls: "step", icon: "▸", name: "started " + id, detail: (argv || []).join(" ") });
+  traceLine({ cls:"step", icon:"▸", name:"Started " + esc(id), detail:esc((argv || []).join(" ")) });
 
-  es = new EventSource("/api/run/" + id + "/stream");
-  es.onmessage = e => handle(JSON.parse(e.data));
-  es.onerror = () => { if (es) { es.close(); es = null; } finish(); };
+  es = new EventSource("/api/run/" + encodeURIComponent(id) + "/stream");
+  es.onmessage = e => {
+    try { handle(JSON.parse(e.data)); }
+    catch (error) { showError("#trace-error", new Error("Could not display a trace event: " + error.message)); }
+  };
+  es.onerror = () => {
+    showError("#trace-error", new Error("Trace connection interrupted. The job may still be running; check history before starting another run."));
+    if (!$("#result").hasChildNodes()) $("#result").textContent = "Result not received. The trace connection was interrupted.";
+    finish();
+  };
 }
 
 function handle(m) {
@@ -632,7 +676,7 @@ function finish() {
 }
 
 function setRunning(on) {
-  ["#btn-run","#btn-guard","#btn-gauntlet","#btn-learn","#btn-probe","#btn-bump-good","#btn-bump-bad","#btn-rollback"]
+  ["#btn-run","#btn-guard","#btn-gauntlet","#btn-probe"]
     .forEach(s => $(s).disabled = on);
   $("#b-job").textContent = on ? "running" : "idle";
   $("#p-job").classList.toggle("run", on);
@@ -649,7 +693,7 @@ function traceLine(o) {
     + (o.chips || "") + '<span class="t">' + rel(o.ts) + '</span></div>'
     + (o.detail ? '<div class="d">' + o.detail + '</div>' : "")
     + '</div>';
-  const tl = $("#timeline");
+  const tl = $(o.cls === "rec" || o.cls === "hash" ? "#recovery-timeline" : "#timeline");
   tl.appendChild(el);
   tl.scrollTop = tl.scrollHeight;
   return el;
@@ -680,16 +724,7 @@ function renderTrace(m) {
       detail: '<code>' + esc((ev.after || "").slice(0, 16)) + '…</code> '
         + '<span style="color:#5c6b8a">action ' + esc((ev.action_hash || "").slice(0, 12)) + '…</span>' });
   }
-  if (f === "versions.jsonl") {
-    const glyph = { PROPOSED: "?", ACCEPTED: "✓", REJECTED: "✖", ROLLED_BACK: "↩", BASELINE: "◉" }[ev.event] || "⟳";
-    const cls = ev.event === "ACCEPTED" ? "ver" : ev.event === "REJECTED" ? "abst" : "ver";
-    let detail = "";
-    if (ev.mode) detail += "mode " + esc(ev.mode) + " · ";
-    if (ev.reason) detail += "reason: " + esc(ev.reason) + " · ";
-    if (ev.guard) detail += "guard: " + esc(Object.entries(ev.guard).map(([k, v]) => k + (v.ok ? "✓" : "✗")).join(" "));
-    if (ev.reflected_from) detail += " · reflected_from " + esc(ev.reflected_from);
-    return traceLine({ cls, icon: glyph, name: esc(ev.event) + " v" + esc(ev.from_version ?? "") + "→v" + esc(ev.to_version ?? ""), ts, detail });
-  }
+  if (f && f !== "actions.jsonl") return;
   // actions.jsonl
   if (ev.event === "PLAN") {
     initPlan(ev);
@@ -744,29 +779,13 @@ function renderJobbar(m) {
   renderPlan();
 }
 
-function kv(rows) {
-  return "<table><tbody>" + rows.map(r => "<tr><th>" + esc(r[0]) + "</th><td>" + r[1] + "</td></tr>").join("") + "</tbody></table>";
-}
-
-function renderResult(res, status) {
+function renderResult(res, status, action = jobAction) {
   const box = $("#result");
   if (!res) { box.innerHTML = '<div class="verdict fail">no JSON result parsed — see raw stdout</div>'; return; }
 
-  // learn: webcmd adapter rows + provenance
-  if (res.site_a_rows) {
-    const tbl = rows => "<table><thead><tr><th>name</th><th>price</th><th>ram / status</th></tr></thead><tbody>"
-      + rows.map(r => "<tr><td>" + esc(r.name || r.pin || "—") + '</td><td class="mono">' + esc(r.price ?? "—")
-        + '</td><td class="mono">' + esc(r.ram ?? r.status ?? "—") + "</td></tr>").join("") + "</tbody></table>";
-    box.innerHTML = '<div class="verdict pass">learned_by: webcmd</div>'
-      + "<h2 style=\"margin-top:12px\">Site A rows</h2>" + tbl(res.site_a_rows || [])
-      + "<h2 style=\"margin-top:12px\">Site B rows</h2>" + tbl(res.site_b_rows || [])
-      + '<p class="note">provenance: <b>' + esc((res.provenance || {}).learned_by || "webcmd")
-      + "</b> · adapters " + esc(((res.provenance || {}).adapters || []).join(", ")) + "</p>";
-    return;
-  }
-
   // gauntlet: clean + every perturbation type in one click
-  if (res.matrix) {    const n = res.matrix.filter(r => r.status === "pass").length;
+  if (res.matrix) {
+    const n = res.matrix.filter(r => r.status === "pass").length;
     box.innerHTML = '<div class="verdict ' + (res.status === "pass" ? "pass" : "fail") + '">'
       + esc(res.verdict || ("gauntlet " + n + "/7")) + '</div>'
       + "<table><thead><tr><th>perturb</th><th>status</th><th>extra</th><th>heal ms</th></tr></thead><tbody>"
@@ -786,20 +805,6 @@ function renderResult(res, status) {
           + '</td><td class="mono">' + esc(v.detail) + "</td></tr>").join("")
       + (res.transfer_v5 ? '<tr><td>transfer v5</td><td><span class="warn-chip">skip</span></td><td class="mono">' + esc(res.transfer_v5.detail) + "</td></tr>" : "")
       + "</tbody></table>";
-    return;
-  }
-
-  // bump / rollback verdicts
-  if (res.verdict) {
-    const v = res.verdict;
-    const cls = v === "ACCEPTED" || v === "ROLLED_BACK" ? "pass" : v === "REJECTED" ? "abstain" : "fail";
-    box.innerHTML = '<div class="verdict ' + cls + '">' + esc(v) + "</div>"
-      + kv([["reason", esc(res.reason || "—")],
-            ["version", "v" + esc(res.from_version ?? "?") + " → v" + esc(res.to_version ?? res.current_version ?? "?")]])
-      + (res.guard ? "<table><thead><tr><th>variant</th><th>ok</th></tr></thead><tbody>"
-          + Object.entries(res.guard).map(([k, r]) => "<tr><td>v" + esc(k) + "</td><td>"
-            + (r.ok ? '<span class="ok-chip">ok</span>' : '<span class="bad-chip">fail</span>')
-            + ' <span class="mono">' + esc(r.detail) + "</span></td></tr>").join("") + "</tbody></table>" : "");
     return;
   }
 
@@ -1048,7 +1053,6 @@ $("#btn-open-b").onclick = () => window.open("http://127.0.0.1:8000/site_b/check
 applyPreset("clean");
 refreshState();
 refreshHistory();
-loadDocs();
 runInterp();
 setInterval(refreshState, 2500);
 

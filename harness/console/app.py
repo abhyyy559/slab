@@ -196,18 +196,24 @@ def _argv(action: str, p: dict) -> list:
         code = ("import json;from harness.variants.transfer_probe import main as probe;"
                 f"print(json.dumps(probe({str(p.get('site_url') or 'https://books.toscrape.com/')!r}),indent=2))")
         return [py, "-u", "-c", code]
-    if action == "gauntlet":        # One button: clean + all six perturbation types, headless, auto-approved.
+    if action == "gauntlet":
+        # One button: clean + six perturbation types. Honors headed/speed/prefs
+        # (single-driver 5-min demo). Auto-approves (7 modals would block).
         # Pass bar: every row pass AND extra <= 2.
+        g_goal = str(p.get("goal") or "Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days")
+        g_headed = bool(p.get("headed"))
+        g_slowmo = p.get("slowmo")
+        g_slowmo = int(g_slowmo) if g_slowmo not in (None, "") else None
+        g_extra = {k: p[k] for k in ("budget", "ram", "pin", "brand") if p.get(k) not in (None, "")}
         code = ("import json;from agent.replayer import run_variant;"
-                "GOAL='Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days';"
-                f"BASE={base!r};"
+                f"GOAL={g_goal!r};BASE={base!r};HEADED={g_headed!r};SLOWMO={g_slowmo!r};XTRA={g_extra!r};"
                 "PERTS=[None,'shuffle','rename','modal','extra_step','throttle','composite'];"
                 "rows=[];"
                 "import time;"
                 "t0=time.time();"
-                "[rows.append((lambda p,r:{'perturb':p or 'clean','status':r.get('status'),'extra':r.get('extra_steps'),'heal':r.get('avg_time_to_heal_ms'),'detect':r.get('avg_time_to_detect_ms'),'ms':r.get('elapsed_ms')})(p,run_variant(variant=4,perturb=p,base=BASE,goal=GOAL,auto_approve=True,headless=True))) for p in PERTS];"
+                "[rows.append((lambda p,r:{'perturb':p or 'clean','status':r.get('status'),'extra':r.get('extra_steps'),'heal':r.get('avg_time_to_heal_ms'),'detect':r.get('avg_time_to_detect_ms'),'ms':r.get('elapsed_ms')})(p,run_variant(variant=4,perturb=p,base=BASE,goal=GOAL,auto_approve=True,headless=not HEADED,slow_mo=SLOWMO,**XTRA))) for p in PERTS];"
                 "ok=all(r['status']=='pass' and (r['extra'] if isinstance(r['extra'], int) else 99)<=2 for r in rows);"
-                "print(json.dumps({'status':'pass' if ok else 'fail','verdict':'gauntlet %d/7'%sum(1 for r in rows if r['status']=='pass'),'extra_steps':sum(r['extra'] or 0 for r in rows),'matrix':rows,'elapsed_ms':int((time.time()-t0)*1000)},indent=2))")
+                "print(json.dumps({'status':'pass' if ok else 'fail','verdict':'gauntlet %d/7'%sum(1 for r in rows if r['status']=='pass'),'extra_steps':sum(r['extra'] if isinstance(r['extra'],int) else 0 for r in rows),'matrix':rows,'elapsed_ms':int((time.time()-t0)*1000)},indent=2))")
         return [py, "-u", "-c", code]
     if action == "bump":
         return [py, "-u", "-m", "agent", "propose-bump",

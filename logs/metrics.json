@@ -4241,6 +4241,114 @@
       "steps": 4,
       "extra_steps": 0,
       "heal_ms": 0
+    },
+    {
+      "trial": 471,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 14
+    },
+    {
+      "trial": 472,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 13
+    },
+    {
+      "trial": 473,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 474,
+      "variant": 4,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 475,
+      "variant": 4,
+      "perturb": "shuffle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 476,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 5
+    },
+    {
+      "trial": 477,
+      "variant": 4,
+      "perturb": "modal",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 343
+    },
+    {
+      "trial": 478,
+      "variant": 4,
+      "perturb": "extra_step",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 348
+    },
+    {
+      "trial": 479,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 480,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 231
+    },
+    {
+      "trial": 481,
+      "variant": 1,
+      "perturb": "move",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 15
+    },
+    {
+      "trial": 482,
+      "variant": 1,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 10
     }
   ],
   "clock_delta": {
