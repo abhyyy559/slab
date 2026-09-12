@@ -1,6 +1,10 @@
-# SENTRY — Self-healing Evidence-backed Browser Agent (SLAB Track 01)
+# SENTRY — Recovery engine for browser agents (SLAB Track 01)
 
 **Thesis:** *Learn once. Replay forever. Heal on change. Prove every claim. Abstain when wrong.*
+**Frame:** *We didn't build another shopping agent. We built the recovery layer any browser agent needs — benchmarked against a cross-site medicine-finder workflow under live, judge-operated UI chaos.* The benchmark is the test bench; the recovery engine is the product.
+
+## Benchmark workflow (medicine-finder, loop not hop)
+Site A pharmacy (cheapest in-stock medicine) -> Site B clinic (branch availability) -> reserve pickup (approval gate). **Loop:** B availability filters the A choice — cheapest *deliverable*, not cheapest listed. Current `commands/phone_delivery_check.json` is the v0 phone-shaped placeholder; medicine swap lands once variant 1 verifies on a Python 3.11 machine.
 
 ## Setup
 ```bash
@@ -35,7 +39,23 @@ Mocks: mocks/site_a (search/filter/results/product), mocks/site_b (PIN delivery 
 See spec §4. Entry: `python -m agent --help`.
 
 ## Logs / Traces
-`logs/actions.jsonl`, `logs/recoveries.jsonl`, `logs/replay-hashes.jsonl`, `logs/metrics.json` from at least one full run.
+`logs/actions.jsonl`, `logs/recoveries.jsonl`, `logs/replay-hashes.jsonl`, `logs/metrics.json` from at least one full run. Hash-chain head is printed to stdout as appended (visible in 3s, not buried in JSONL). Evidence board is a **plain HTML table** (90-min cap, no replay UI).
+
+## Headline metric: recovery cost
+Extra steps + heal time per perturbation, averaged across the run. Nobody else owns this number.
+
+## Failure table (honest, updated per run)
+| Failure | Handling | Status |
+|---|---|---|
+| Element renamed/moved | re-ground (5-signal, tau=0.70), log Recovery | built, unverified (no Python here) |
+| Unexpected modal / extra step | dismiss / confirm, verify postcondition | planned Phase 2 |
+| Load timeout | 3s cap, snapshot fallback | built, unverified |
+| No eligible result | ABSTAIN naming failed constraint | built, unverified |
+| Open-domain transfer | not supported (same-family only) | published limitation |
+| Baseline uses stable `data-testid`; perturbed run strips them | say so on stage | policy |
+
+## Credibility test
+Mocks are the benchmark; one run against real public HTML we did not write (books.toscrape.com or quotes.toscrape.com) is the credibility test.
 
 ## Safety
-No CAPTCHA solving, no login bypass, no real credentials/payments. Respects robots/ToS/rate limits. Human approval gate before irreversible actions.
+No CAPTCHA solving, no login bypass, no real credentials/payments. Respects robots/ToS/rate limits. Human approval gate before irreversible actions — **browser modal** ("SENTRY wants to submit. Approve?"), teammate clicks on stage; CLI y/N is fallback only.
