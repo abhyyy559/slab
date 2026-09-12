@@ -4,23 +4,23 @@
     "name": "Pixel Lite 8GB",
     "price": 18999,
     "ram": 8,
-    "text": "\ud83d\udcf1\nPixel Lite 8GB \u2014 Rs 18,999\nRs 18,999\n8GB RAM\nView details"
+    "text": "Pixel Lite 8GB\n\u2605\u2605\u2605\u2605\u2605\n4.6 \u00b7 5,903 ratings\n8GB RAM\n128GB\n5G\nRs 18,999\nRs 21,499\n12% off\nIn stock \u00b7 ships today\nDelivery in 2\u20133 days\nView details"
   },
   "delivery": "Delivery available to PIN 500001 in 2-3 days",
   "evidence": [
     {
       "claim": "Cheapest phone >= 8GB under Rs 20000 is Pixel Lite 8GB at Rs 18999",
       "url": "http://127.0.0.1:8000/site_a/search.html?perturb=composite",
-      "snippet_verbatim": "\ud83d\udcf1",
-      "char_offset": 4499,
-      "sha256": "2566561f81db7a7c4adb6cee3e93139155a6b01d52ff0d3d5c11648f46bc79bb",
+      "snippet_verbatim": "Pixel Lite 8GB",
+      "char_offset": 10720,
+      "sha256": "52645329247ffb1cfaa5faf0d4c7766c354f430b30bb4986bf822e5718e2bc66",
       "action_log_ref": 2
     },
     {
       "claim": "Site B confirms deliverable within 3 days to PIN 500001: Delivery available to PIN 500001 in 2-3 days",
       "url": "http://127.0.0.1:8000/site_b/check.html?perturb=composite",
       "snippet_verbatim": "Delivery available to PIN 500001 in 2-3 days",
-      "char_offset": 2828,
+      "char_offset": 4776,
       "sha256": "507c97cd06f07d5305a7f0de41d7fddb61f35ea04179ef91bb3dd44102468ced",
       "action_log_ref": 4
     }
@@ -34,9 +34,9 @@
     "decision": "proceed"
   },
   "extra_steps": 2,
-  "avg_time_to_heal_ms": 191,
-  "avg_time_to_detect_ms": 3,
-  "elapsed_ms": 6610,
+  "avg_time_to_heal_ms": 223,
+  "avg_time_to_detect_ms": 4,
+  "elapsed_ms": 7061,
   "variant": 4,
   "perturb": "composite"
 }

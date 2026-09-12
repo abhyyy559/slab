@@ -4,32 +4,72 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VoltKart — Product</title>
 <style>
-  :root { --brand:#1a56db; --bg:#f1f4f9; --card:#fff; --ink:#17233b; --muted:#667085; --line:#e4e9f2; }
-  body { margin:0; font-family:"Segoe UI",system-ui,Arial,sans-serif; background:var(--bg); color:var(--ink); }
-  header { background:linear-gradient(135deg,#1a56db,#0b2f87); color:#fff; padding:14px 28px; font-weight:800; font-size:20px; }
+  :root { --brand:#1a56db; --brand-dark:#1443ad; --brand-ink:#0b2f87; --bg:#eef2f8; --card:#fff; --ink:#17233b; --muted:#667085; --line:#e4e9f2; --ok:#067647; --okbg:#ecfdf3; --okline:#a6f4c5; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif; background:var(--bg); color:var(--ink); }
+  .strip { background:var(--brand-ink); color:#c9dcff; font-size:12px; padding:7px 28px; }
+  header { background:linear-gradient(135deg,#1a56db,#0b2f87); color:#fff; padding:14px 28px; font-weight:800; font-size:20px; display:flex; align-items:center; gap:6px; }
   header a { color:#cfe0ff; font-size:13px; font-weight:400; text-decoration:none; margin-left:16px; }
-  main { max-width:720px; margin:28px auto; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:30px; display:flex; gap:26px; }
-  .thumb { background:linear-gradient(135deg,#dbe7ff,#f3f6ff); border-radius:12px; min-width:220px; display:flex; align-items:center; justify-content:center; font-size:90px; }
-  h1 { margin:0 0 6px; font-size:24px; }
-  .price { font-size:26px; font-weight:800; color:#1443ad; margin:6px 0; }
-  .ram { color:var(--muted); margin:0 0 18px; }
+  header a:hover { color:#fff; text-decoration:underline; }
+  .crumb { max-width:860px; margin:18px auto 0; padding:0 20px; font-size:13px; color:var(--muted); }
+  .crumb b { color:var(--ink); }
+  main { max-width:860px; margin:12px auto 24px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:30px; display:flex; gap:28px; box-shadow:0 1px 3px rgba(16,24,40,.06); }
+  .thumb { background:linear-gradient(140deg,#dbe7ff,#f4f7ff); border-radius:12px; min-width:240px; height:240px; display:flex; align-items:center; justify-content:center; color:var(--brand); }
+  h1 { margin:0 0 4px; font-size:24px; }
+  .rating { font-size:13px; color:var(--muted); margin-bottom:10px; }
+  .stars { color:#f79009; letter-spacing:1px; }
+  .price { font-size:27px; font-weight:800; color:var(--brand-ink); margin:6px 0 2px; }
+  .mrp { font-size:14px; color:var(--muted); margin:0 0 14px; }
+  .mrp s { text-decoration:line-through; }
+  .chiprow { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 18px; }
+  .chip { font-size:12px; background:#f4f7ff; color:var(--brand-dark); border:1px solid #dbe4fa; padding:4px 11px; border-radius:20px; font-weight:600; }
+  ul.specs { margin:0 0 20px; padding-left:18px; font-size:13.5px; color:var(--muted); line-height:1.7; }
+  .buy { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
   button { background:var(--brand); color:#fff; border:none; padding:13px 30px; font-size:15px; font-weight:700; border-radius:10px; cursor:pointer; }
+  button:hover { background:var(--brand-dark); }
+  .stock { font-size:13px; font-weight:700; color:var(--ok); background:var(--okbg); border:1px solid var(--okline); padding:6px 12px; border-radius:20px; }
+  footer { text-align:center; color:var(--muted); font-size:12px; padding:22px; }
 </style>
 </head>
 <body>
+<div class="strip">Free delivery on orders over Rs 999 · No-cost EMI available</div>
 <header>VoltKart <a href="/site_a/search.html">← back to search</a></header>
+
+<div class="crumb">Home / Mobiles / <b>Product details</b></div>
+
 <main>
-  <div class="thumb" aria-hidden="true">📱</div>
+  <div class="thumb" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="110" height="110" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6" y="2" width="12" height="20" rx="3"/><line x1="10.5" y1="18.5" x2="13.5" y2="18.5"/>
+    </svg>
+  </div>
   <div>
     <h1 data-testid="product-name">Pixel Lite 8GB</h1>
+    <div class="rating"><span class="stars">★★★★★</span> 4.6 · 5,903 ratings · VoltKart Assured</div>
     <p class="price" data-testid="product-price">Rs 18,999</p>
-    <p class="ram" data-testid="product-ram">8GB RAM · 128GB storage · 5G</p>
-    <button data-testid="enquire-button" role="button">Enquire</button>
+    <p class="mrp">M.R.P. <s>Rs 21,499</s> &nbsp;·&nbsp; 12% off &nbsp;·&nbsp; inclusive of all taxes</p>
+    <p class="ram" data-testid="product-ram" style="font-size:13.5px;color:#667085;margin:0 0 16px">8GB RAM · 128GB storage · 5G</p>
+    <div class="chiprow"><span class="chip">8GB RAM</span><span class="chip">128GB</span><span class="chip">5G</span><span class="chip">5000 mAh</span></div>
+    <ul class="specs">
+      <li>6.4″ AMOLED display, 90Hz</li>
+      <li>Triple camera · 50MP main</li>
+      <li>Two-year brand warranty</li>
+    </ul>
+    <div class="buy">
+      <button data-testid="enquire-button" role="button">Enquire</button>
+      <span class="stock">In stock · ships today</span>
+    </div>
   </div>
 </main>
+
+<footer>VoltKart demo storefront · prices include GST · free delivery over Rs 999</footer>
+
 <script>
 const q = new URLSearchParams(location.search).get("name");
-if (q) { const el = document.querySelector('[data-testid="product-name"]'); if (el) el.textContent = decodeURIComponent(q) + " 8GB"; }
+if (q) {
+  const el = document.querySelector('[data-testid="product-name"]');
+  if (el) el.textContent = decodeURIComponent(q) + " 8GB";
+}
 </script>
 <script src="/chaos.js"></script>
 </body>

@@ -4,7 +4,7 @@ from .grounder import ground, Target, TAU
 from .executor import do_action, state_hash
 from .logger import log_action, log_hash, log_recovery
 from .evidence import make_claim
-from .constraints import check as check_constraints
+from .constraints import check as check_constraints, deliverable_within_days
 from .approval import require_approval, require_approval_browser
 from . import detector as det
 from . import recovery as rec
@@ -197,7 +197,7 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
             snippet_b = status_text.strip().split("\n")[0] if status_text.strip() else "delivery-status"
             ev2 = make_claim(f"Site B confirms deliverable within 3 days to PIN {pin}: {status_text.strip()}", url2, html_b, snippet_b, action_log_ref=seq)
             evidences.append(ev2)
-            within_days = "2-3 days" in status_text
+            within_days = deliverable_within_days(status_text)
             verdict = check_constraints({"max_price": cheapest["price"] <= budget,
                                          "min_ram": cheapest["ram"] >= ram,
                                          "b_confirms_deliverable_3d": within_days})

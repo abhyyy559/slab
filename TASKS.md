@@ -34,13 +34,14 @@
 - [x] Polish Site A / Site B UI (VoltKart + SwiftShip; DOM contracts kept)
 - [x] Re-verify v1 + composite on polished mocks (v1: 0 extra; v4: 2 extra)
 - [x] Demo run for review: screenshots + log walkthrough (this session)
+- [x] Storefront restyle v2 (VoltKart + SwiftShip): contracts frozen, sticky chrome below chaos overlays, empty-state on zero matches; evidence snippet no longer the thumbnail emoji
+- [x] Re-verify after v2: full guard green (v1 pass/0, v2 pass/0, v3 ABSTAIN, v4 pass/2 extra, v6 ABSTAIN); last_run.json + evidence.html regenerated
 
 ## Next — one by one, in order
 - [x] Infeasible variant (+1): budget 8000 + 12GB → ABSTAIN naming `max_price AND min_ram` (verified)
-- [x] Regression-guard + rollback: guard v1/v2/v3/v4/v6, good ACCEPTED v1→v2, bad REJECTED, rollback→v1 green; `logs/versions.jsonl` (verified)
+- [x] Regression-guard + rollback: guard v1/v2/v3/v4/v6, good ACCEPTED v1→v2, bad REJECTED, rollback→v1 green; `logs/versions.jsonl` (verified). Re-run green after storefront restyle v2. Un-cutting "learning" from the pitch is still an owner call.
 - [ ] Medicine-finder swap: pharmacy + clinic mocks replace phone v0; re-verify v1 + v4
 - [ ] Credibility run: same-family real HTML (books.toscrape.com), pass or honest ABSTAIN
-- [ ] Reflect: regression-guarded version bump + `rollback` demo (only then un-cut "learning")
 - [ ] README architecture diagram + ONE-PAGER metrics from real logs
 - [ ] Backup MP4 (≤3 min, real execution) + 5-min demo rehearsal ×2 laptops
 
