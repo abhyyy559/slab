@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Site A — Product</title></head>
+<body>
+<main>
+  <h1 data-testid="product-name">Pixel Lite 8GB</h1>
+  <p data-testid="product-price">Rs 18,999</p>
+  <p data-testid="product-ram">8GB RAM</p>
+  <button data-testid="enquire-button" role="button">Enquire</button>
+</main>
+<script>
+const q = new URLSearchParams(location.search).get("name");
+if (q) { const el = document.querySelector('[data-testid="product-name"]'); if (el) el.textContent = decodeURIComponent(q) + " 8GB"; }
+</script>
+</body>
+</html>

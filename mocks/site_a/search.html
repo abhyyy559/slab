@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Site A — Phone Search</title></head>
+<body>
+<header><h1 data-testid="site-title">Site A Phones</h1></header>
+<main>
+  <input data-testid="search-box" aria-label="Search phones" placeholder="Search phones" value="phone" />
+  <button data-testid="search-button" role="button">Search</button>
+  <section aria-label="Filters">
+    <label>Max price (Rs) <input data-testid="max-price" value="20000" /></label>
+    <label>Min RAM (GB) <input data-testid="min-ram" value="8" /></label>
+    <button data-testid="apply-filter" role="button">Apply Filter</button>
+  </section>
+  <section data-testid="results" aria-label="Results">
+    <article data-testid="product-card" data-name="Nova X1 6GB" data-price="15999" data-ram="6">
+      <h2> triplet Nova X1 6GB — Rs 15,999</h2>
+      <span data-testid="price">Rs 15,999</span> <span data-testid="ram">6GB RAM</span>
+      <a data-testid="product-link" href="/site_a/product.html?name=Nova%20X1">View</a>
+    </article>
+    <article data-testid="product-card" data-name="Pixel Lite 8GB" data-price="18999" data-ram="8">
+      <h2>Pixel Lite 8GB — Rs 18,999</h2>
+      <span data-testid="price">Rs 18,999</span> <span data-testid="ram">8GB RAM</span>
+      <a data-testid="product-link" href="/site_a/product.html?name=Pixel%20Lite">View</a>
+    </article>
+    <article data-testid="product-card" data-name="Galaxy Max 12GB" data-price="24999" data-ram="12">
+      <h2>Galaxy Max 12GB — Rs 24,999</h2>
+      <span data-testid="price">Rs 24,999</span> <span data-testid="ram">12GB RAM</span>
+      <a data-testid="product-link" href="/site_a/product.html?name=Galaxy%20Max">View</a>
+    </article>
+  </section>
+</main>
+<script>
+document.querySelector('[data-testid="apply-filter"]').addEventListener('click', () => {
+  const max = parseInt(document.querySelector('[data-testid="max-price"]').value || "0", 10);
+  const minRam = parseInt(document.querySelector('[data-testid="min-ram"]').value || "0", 10);
+  document.querySelectorAll('[data-testid="product-card"]').forEach(c => {
+    const p = parseInt(c.dataset.price, 10), r = parseInt(c.dataset.ram, 10);
+    c.style.display = (p <= max && r >= minRam) ? "" : "none";
+  });
+});
+</script>
+</body>
+</html>

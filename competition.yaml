@@ -1,0 +1,25 @@
+competition: SLAB Hackathon CMR College Edition
+track: "01 - Adaptive Browsing"
+team: SENTRY
+variant_cap: 5_plus_1_infeasible
+code_freeze: H-2h
+stack:
+  language: python-3.11+
+  automation: playwright-sync
+  adapters: webcmd-or-hand-authored-json
+  logs: json-jsonl
+  board: static-html-js
+  console: flask-localhost
+constraints:
+  - no captcha solving
+  - no login bypass
+  - no real credentials or payments
+  - respect robots.txt, ToS, rate limits
+  - human approval before irreversible actions
+variants:
+  - v1_practiced
+  - v2_practiced
+  - v3_practiced
+  - v4_perturbed_composite
+  - v5_transfer_same_family
+  - v6_infeasible_abstain
