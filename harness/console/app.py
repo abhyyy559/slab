@@ -614,4 +614,4 @@ if __name__ == "__main__":
     ap.add_argument("--port", type=int, default=8765)
     a = ap.parse_args()
     print(f"SENTRY console + dashboard on http://127.0.0.1:{a.port}  (repo root {ROOT})")
-    app.run(host="127.0.0.1", port=a.port, threaded=True, debug=False)
+    app.run(host="0.0.0.0", port=a.port, threaded=True, debug=False)

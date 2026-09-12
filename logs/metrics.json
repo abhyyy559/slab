@@ -4439,6 +4439,519 @@
       "steps": 4,
       "extra_steps": 2,
       "heal_ms": 271
+    },
+    {
+      "trial": 493,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 561
+    },
+    {
+      "trial": 494,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 417
+    },
+    {
+      "trial": 495,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 416
+    },
+    {
+      "trial": 496,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 448
+    },
+    {
+      "trial": 497,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 452
+    },
+    {
+      "trial": 498,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 384
+    },
+    {
+      "trial": 499,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 416
+    },
+    {
+      "trial": 500,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 433
+    },
+    {
+      "trial": 501,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 435
+    },
+    {
+      "trial": 502,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 456
+    },
+    {
+      "trial": 503,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 426
+    },
+    {
+      "trial": 504,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 505,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 506,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 507,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 508,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 509,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 510,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 511,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 512,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 513,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 514,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 50
+    },
+    {
+      "trial": 515,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 516,
+      "variant": 4,
+      "perturb": "move",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 34
+    },
+    {
+      "trial": 517,
+      "variant": 4,
+      "perturb": "attrs",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 518,
+      "variant": 4,
+      "perturb": "modal",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 440
+    },
+    {
+      "trial": 519,
+      "variant": 4,
+      "perturb": "extra_step",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 440
+    },
+    {
+      "trial": 520,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 521,
+      "variant": 4,
+      "perturb": "rename_strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 522,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 333
+    },
+    {
+      "trial": 523,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 524,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 293
+    },
+    {
+      "trial": 525,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 26
+    },
+    {
+      "trial": 526,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 527,
+      "variant": 4,
+      "perturb": "swap",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 528,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 529,
+      "variant": 4,
+      "perturb": "ab",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 530,
+      "variant": 4,
+      "perturb": "chaos_max",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 298
+    },
+    {
+      "trial": 531,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 532,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 533,
+      "variant": 6,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 534,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 535,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 279
+    },
+    {
+      "trial": 536,
+      "variant": 4,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 307
+    },
+    {
+      "trial": 537,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 538,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 26
+    },
+    {
+      "trial": 539,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 540,
+      "variant": 4,
+      "perturb": "move",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 32
+    },
+    {
+      "trial": 541,
+      "variant": 4,
+      "perturb": "attrs",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 542,
+      "variant": 4,
+      "perturb": "modal",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 1,
+      "heal_ms": 468
+    },
+    {
+      "trial": 543,
+      "variant": 4,
+      "perturb": "extra_step",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 1,
+      "heal_ms": 484
+    },
+    {
+      "trial": 544,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 545,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 2,
+      "heal_ms": 293
+    },
+    {
+      "trial": 546,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 36
+    },
+    {
+      "trial": 547,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 548,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 549,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
     }
   ],
   "clock_delta": {
@@ -4447,5 +4960,14 @@
     "note": "wall-clock explore-vs-replay; token counts unmeasurable from webcmd output, no token claims"
   },
   "citation_note": "snippet-integrity (sha re-verified); page-presence verified at creation",
-  "recovery_entries": 453
+  "recovery_entries": 453,
+  "baseline_distribution": {
+    "n": 10,
+    "extra_0": 10,
+    "extra_1": 0,
+    "avg_extra": 0,
+    "console": "clean (active=null)",
+    "date": "2026-09-12"
+  },
+  "baseline_contamination_note": "Earlier 0.32 avg and a 10/10 extra=1 streak were both a stuck console perturbation (extra_step left injected), not agent variance: the agent correctly healed real chaos each time. Reset via POST /perturb/reset."
 }

@@ -1,1 +1,1 @@
-{"run_id": "v4/composite", "step": "4/4", "status": "pass", "extra_steps": 2, "detect_ms": 77, "heal_ms": 271, "elapsed_ms": 6688, "ts": 1789221476110}
+{"run_id": "v1/clean", "step": "4/4", "status": "pass", "extra_steps": 0, "detect_ms": 0, "heal_ms": 0, "elapsed_ms": 3200, "ts": 1789224009176}

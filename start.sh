@@ -49,7 +49,7 @@ for spec in "mocks:$PORT_MOCKS:mocks/serve.py --port $PORT_MOCKS" "console:$PORT
   fi
   # shellcheck disable=SC2086
   nohup $PY $cmd > "logs/start-$name.log" 2>&1 < /dev/null &
-  disown || true
+  # no disown: trailing `wait` keeps this script (and the container) alive.
   echo "$name : starting (logs/start-$name.log)"
 done
 
@@ -65,3 +65,5 @@ else
   echo "FAILED to bring up servers; see logs/start-*.log" >&2
   exit 1
 fi
+# Hold the foreground so containers (and `wait`-based supervisors) stay alive.
+wait

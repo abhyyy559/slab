@@ -7,7 +7,7 @@ def main():
     ap.add_argument("--dir", default=str(pathlib.Path(__file__).resolve().parent))
     a = ap.parse_args()
     handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=a.dir)
-    srv = http.server.ThreadingHTTPServer(("127.0.0.1", a.port), handler)
+    srv = http.server.ThreadingHTTPServer(("0.0.0.0", a.port), handler)
     print(f"mocks serving {a.dir} at http://127.0.0.1:{a.port}/site_a/search.html and /site_b/check.html")
     srv.serve_forever()
 

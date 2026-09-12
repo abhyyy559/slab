@@ -1,0 +1,8 @@
+services:
+  sentry:
+    build: .
+    ports:
+      - "8000:8000"
+      - "8765:8765"
+    volumes:
+      - ./logs:/app/logs
