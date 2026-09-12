@@ -47,7 +47,7 @@
 - [ ] Medicine-finder swap: pharmacy + clinic mocks replace phone v0; re-verify v1 + v4 (the planner now refuses `medicine` goals with `unsupported_goal`, so lifting that refusal goes with this task)
 - [x] Credibility run: same-family real HTML (books.toscrape.com), pass or honest ABSTAIN
 - [ ] README architecture diagram + ONE-PAGER metrics from real logs
-- [ ] Backup MP4 (≤3 min, real execution) + 5-min demo rehearsal ×2 laptops
+- [x] Backup MP4 (≤3 min, real execution) + 5-min demo rehearsal ×2 laptops
 
 ## How to run anything here (resources)
 ```bash
