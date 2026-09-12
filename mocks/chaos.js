@@ -30,7 +30,8 @@
     ["Apply Filter", "Refine Results"],
     ["Check Delivery", "Verify Shipment"],
     ["Search", "Look Up"],
-    ["Apply", "Refine"]
+    ["Apply", "Refine"],
+    ["Send enquiry", "Send Query"]
   ];
   /* Section/heading synonyms used on the results zone. */
   var SECTION_RENAMES = [["Results", "Matches"], ["Filters", "Refinements"]];

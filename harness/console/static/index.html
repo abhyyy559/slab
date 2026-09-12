@@ -182,9 +182,13 @@
         Open-domain transfer is still a published limitation — see <code>FAILURES.md</code>.
       </div>
       <div class="note grey">
-        <b>Workflow:</b> <code>phone_delivery_check</code> (v1) · Site A VoltKart → Site B SwiftShip<br>
+        <b>Workflow:</b> two selectable by goal — <code>phone_delivery_check</code> (4 steps) and
+        <code>phone_fulfilment_enquiry</code> (5 steps). Site A VoltKart → Site B SwiftShip.<br>
+        A goal that asks to <b>contact / enquire</b> switches to the 5-step workflow and performs a real
+        cross-site write (the product from Site A becomes the enquiry subject on Site B), gated by approval.<br>
         <b>Try:</b> <code>cheapest phone under Rs 8000 with at least 12GB RAM</code> ·
-        <code>cheapest mobile under 25000 to pin 500001</code> · <code>cheapest medicine under Rs 500</code>
+        <code>cheapest mobile under 25000 to pin 500001</code> ·
+        <code>cheapest medicine under Rs 500</code> (refused)
       </div>
     </section>
 
@@ -201,6 +205,7 @@
         <div><label class="f">budget (Rs)</label><input type="text" id="budget" placeholder="20000"></div>
         <div><label class="f">min RAM (GB)</label><input type="text" id="ram" placeholder="8"></div>
         <div><label class="f">PIN</label><input type="text" id="pin" placeholder="500001"></div>
+        <div><label class="f">brand (hard filter)</label><input type="text" id="brand" placeholder="e.g. pixel"></div>
       </div>
       <div class="grid2">
         <div><label class="f">variant label</label><input type="text" id="variant" value="1"></div>
@@ -223,6 +228,8 @@
       </div>
       <label class="toog"><input type="checkbox" id="headed" checked> visible browser window</label>
       <label class="toog"><input type="checkbox" id="approval_modal" checked> require approval modal before submit</label>
+      <label class="toog"><input type="checkbox" id="highlight" checked> highlight grounded elements + changes on the page</label>
+      <label class="toog"><input type="checkbox" id="pause_on_low"> pause for me when grounding confidence is low</label>
       <div class="rowchk">
         <div><label class="f">speed (slow-mo ms)</label>
           <select id="slowmo" style="width:170px">
@@ -242,6 +249,11 @@
       <p class="sub">Guard = 5 variants. Bump = propose a lesson, accept only if the guard stays green.</p>
       <button class="wide" id="btn-guard" style="margin-top:4px">Run full guard (5 variants)</button>
       <button class="wide" id="btn-gauntlet" style="margin-top:4px">Run chaos matrix (clean + 6 perturbs)</button>
+      <div class="row" style="margin-top:8px">
+        <input type="text" id="site" placeholder="https://books.toscrape.com/" style="flex:1">
+        <button class="sm" id="btn-probe">probe live site</button>
+      </div>
+      <div class="note grey">Read-only probe. Login/CAPTCHA/blocks ABSTAIN with a named reason — never bypassed.</div>
       <div class="row" style="margin-top:8px">
         <button class="sm" id="btn-bump-good">propose bump · good</button>
         <button class="sm" id="btn-bump-bad">propose bump · bad</button>
@@ -295,6 +307,7 @@ const ms = v => (v === null || v === undefined) ? "—" : v + " ms";
 
 const PRESETS = {
   clean:      {variant:"1", perturb:"",          budget:"",     ram:"",  pin:"",       label:"Clean run", sub:"v1 · default params"},
+  enquiry:    {variant:"1", perturb:"",          budget:"",     ram:"",  pin:"",       label:"Clean run (+enquiry)", sub:"v1 · full 2-site workflow, 5 steps"},
   chaos:      {variant:"4", perturb:"composite", budget:"",     ram:"",  pin:"",       label:"Composite chaos", sub:"v4 · rename/strip/move/attrs + modal"},
   chaosmax:   {variant:"4", perturb:"chaos_max", budget:"",     ram:"",  pin:"",       label:"Chaos max", sub:"v4 · everything incl. ab + swap"},
   strip:      {variant:"4", perturb:"strip",     budget:"",     ram:"",  pin:"",       label:"Strip test ids", sub:"v4 · agent must go structural"},
@@ -308,6 +321,13 @@ const PRESETS = {
   solo_throttle:   {variant:"4", perturb:"throttle",   budget:"", ram:"", pin:"", label:"Solo: throttle", sub:"v4 · slow net only"},
   solo_composite:  {variant:"4", perturb:"composite",  budget:"", ram:"", pin:"", label:"Solo: composite", sub:"v4 · everything"},
 };
+
+/* Goals are the real driver: the planner inspects the text. A goal mentioning
+   contact/enquiry switches to the 5-step cross-site-write workflow. */
+const GOALS = {
+  delivery: "Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days",
+  enquiry:  "Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days and submit an enquiry for it on Site B",
+};
 const CHAOS = ["rename","strip","move","attrs","modal","extra_step","throttle","ab","swap","composite","chaos_max","reset"];
 
 let es = null, jobId = null, t0 = null, running = false;
@@ -320,6 +340,9 @@ function applyPreset(name) {
   $("#budget").value = p.budget;
   $("#ram").value = p.ram;
   $("#pin").value = p.pin;
+  // The goal drives the plan: a contact/enquiry goal selects the 5-step workflow.
+  if (name === "enquiry") $("#goal").value = GOALS.enquiry;
+  else if (name === "clean") $("#goal").value = GOALS.delivery;
   document.querySelectorAll("#presets button").forEach(b => b.classList.toggle("sel", b.dataset.k === name));
   hint();
 }
@@ -331,8 +354,11 @@ function params() {
     budget: $("#budget").value.trim() === "" ? null : parseInt($("#budget").value, 10),
     ram: $("#ram").value.trim() === "" ? null : parseInt($("#ram").value, 10),
     pin: $("#pin").value.trim() || null,
+    brand: $("#brand").value.trim().toLowerCase() || null,
     headed: $("#headed").checked,
     approval_modal: $("#approval_modal").checked,
+    pause_on_low: $("#pause_on_low") && $("#pause_on_low").checked,
+    no_highlight: !($("#highlight") && $("#highlight").checked),
     slowmo: ($("#slowmo") && $("#slowmo").value.trim()) || null,
     keep_open: ($("#keep_open") && $("#keep_open").value.trim()) || null,
   };
@@ -343,9 +369,12 @@ function hint() {
   if (p.budget !== null) bits.push("--budget " + p.budget);
   if (p.ram !== null) bits.push("--ram " + p.ram);
   if (p.pin) bits.push("--pin " + p.pin);
+  if (p.brand) bits.push("--brand " + p.brand);
   if (p.headed) bits.push("--headed");
   if (p.slowmo) bits.push("--slowmo " + p.slowmo);
   if (p.keep_open) bits.push("--keep-open " + p.keep_open);
+  if (p.pause_on_low) bits.push("--pause-on-low");
+  if (p.no_highlight) bits.push("--no-highlight");
   if (p.approval_modal) bits.push("--no-yes");
   $("#argv-hint").textContent = "python -m agent run " + bits.join(" ");
 }
@@ -373,8 +402,9 @@ for (const c of CHAOS) {
   };
   $("#chaos").appendChild(b);
 }
-["#goal","#variant","#perturb","#budget","#ram","#pin","#headed","#approval_modal","#slowmo"]
-  .forEach(s => $(s).addEventListener("input", hint));
+["#goal","#variant","#perturb","#budget","#ram","#pin","#brand","#headed","#approval_modal","#slowmo",
+ "#highlight","#pause_on_low"]
+  .forEach(s => { const e = $(s); if (e) e.addEventListener("input", hint); });
 
 /* -------------------------------------------------------------------- start */
 async function start(action, extra = {}) {
@@ -421,7 +451,7 @@ function finish() {
 }
 
 function setRunning(on) {
-  ["#btn-run","#btn-guard","#btn-gauntlet","#btn-bump-good","#btn-bump-bad","#btn-rollback"]
+  ["#btn-run","#btn-guard","#btn-gauntlet","#btn-probe","#btn-bump-good","#btn-bump-bad","#btn-rollback"]
     .forEach(s => $(s).disabled = on);
   $("#b-job").textContent = on ? "running" : "idle";
   $("#p-job").classList.toggle("run", on);
@@ -591,10 +621,16 @@ function renderResult(res, status) {
   html += '<div class="rcards">';
   if (c.name) html += '<div class="rc"><span>chosen</span><b>' + esc(c.name) + "</b><small>Rs " + esc(c.price) + " · " + esc(c.ram) + "GB</small></div>";
   if (res.delivery) html += '<div class="rc"><span>site B says</span><b style="font-size:14px">' + esc(res.delivery) + "</b></div>";
+  if (res.enquiry && res.enquiry.ok) html += '<div class="rc"><span>enquiry (site B)</span><b style="font-size:13px">' + esc(res.enquiry.reference || "submitted") + "</b><small>cross-site write</small></div>";
   html += '<div class="rc"><span>extra steps</span><b>' + esc(res.extra_steps ?? "—") + "</b><small>recovery cost</small></div>";
   html += '<div class="rc"><span>detect / heal</span><b>' + esc(res.avg_time_to_detect_ms ?? 0) + " / " + esc(res.avg_time_to_heal_ms ?? 0) + "</b><small>ms avg</small></div>";
   html += '<div class="rc"><span>elapsed</span><b>' + esc(res.elapsed_ms ?? "—") + "</b><small>ms total</small></div>";
   html += "</div>";
+  if (res.enquiry) {
+    html += '<p class="hint">Site B enquiry: '
+      + (res.enquiry.ok ? '<span class="ok-chip">confirmed</span>' : '<span class="bad-chip">not confirmed</span>')
+      + " " + esc(res.enquiry.observed || "") + "</p>";
+  }
 
   if (res.constraints) {
     html += "<table><thead><tr><th>constraint</th><th>state</th></tr></thead><tbody>"
@@ -615,12 +651,15 @@ function renderResult(res, status) {
 
 /* ----------------------------------------------------------------- plan rail */
 const STEP_LABEL = { open_search:"open search", apply_filter:"apply filter",
-                     extract_cheapest:"extract cheapest", check_delivery:"check delivery" };
-const STEP_SITE  = { open_search:"A", apply_filter:"A", extract_cheapest:"A", check_delivery:"B" };
+                     extract_cheapest:"extract cheapest", check_delivery:"check delivery",
+                     submit_enquiry:"submit enquiry" };
+const STEP_SITE  = { open_search:"A", apply_filter:"A", extract_cheapest:"A",
+                     check_delivery:"B", submit_enquiry:"B" };
 // Which action actually completes each step. Site B's goto is navigation, not completion --
 // its step only finishes on the click -- so we cannot treat every non-ground action as terminal.
 const STEP_TERMINAL = { open_search:"goto", apply_filter:"click",
-                        extract_cheapest:"extract", check_delivery:"click" };
+                        extract_cheapest:"extract", check_delivery:"click",
+                        submit_enquiry:"click" };
 let planState = null, activeStep = -1, pendingHeals = [], jobAction = null;
 
 function initPlan(ev) {
@@ -801,6 +840,7 @@ async function refreshState() {
 $("#btn-run").onclick = () => start("run");
 $("#btn-guard").onclick = () => start("guard");
 $("#btn-gauntlet").onclick = () => start("gauntlet");
+$("#btn-probe").onclick = () => start("probe", { site_url: $("#site").value.trim() || "https://books.toscrape.com/" });
 $("#btn-bump-good").onclick = () => start("bump", { mode: "good" });
 $("#btn-bump-bad").onclick = () => start("bump", { mode: "bad" });
 $("#btn-rollback").onclick = () => start("rollback", { to: 1 });

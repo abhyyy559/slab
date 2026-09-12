@@ -1,13 +1,13 @@
 {
-  "replay_success_rate": "93/93 trials met expectation (v3 ABSTAIN counted correct)",
-  "offline_replay_success_rate": "93/93",
-  "avg_time_to_detect_ms": 526.3,
-  "avg_time_to_heal_ms": 289.0,
+  "replay_success_rate": "285/285 trials met expectation (v3 ABSTAIN counted correct)",
+  "offline_replay_success_rate": "285/285",
+  "avg_time_to_detect_ms": 256.3,
+  "avg_time_to_heal_ms": 238.1,
   "avg_extra_steps": {
-    "1": 0.32,
-    "2": 0.0,
+    "1": 0.25,
+    "2": 0.04,
     "3": 0.0,
-    "4": 2.0
+    "4": 0.98
   },
   "citation_precision": 1.0,
   "transfer": "pass (books.toscrape.com, logs/transfer.json)",
@@ -1856,6 +1856,1374 @@
       "steps": 4,
       "extra_steps": 2,
       "heal_ms": 258
+    },
+    {
+      "trial": 206,
+      "variant": 2,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 207,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 242
+    },
+    {
+      "trial": 208,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 11
+    },
+    {
+      "trial": 209,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 210,
+      "variant": 4,
+      "perturb": "move",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 8
+    },
+    {
+      "trial": 211,
+      "variant": 4,
+      "perturb": "attrs",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 212,
+      "variant": 4,
+      "perturb": "modal",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 407
+    },
+    {
+      "trial": 213,
+      "variant": 4,
+      "perturb": "extra_step",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 376
+    },
+    {
+      "trial": 214,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 215,
+      "variant": 4,
+      "perturb": "rename_strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 216,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 30
+    },
+    {
+      "trial": 217,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 260
+    },
+    {
+      "trial": 218,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 219,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 220,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 268
+    },
+    {
+      "trial": 221,
+      "variant": 4,
+      "perturb": "move",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 28
+    },
+    {
+      "trial": 222,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 18
+    },
+    {
+      "trial": 223,
+      "variant": 4,
+      "perturb": "attrs",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 224,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 225,
+      "variant": 4,
+      "perturb": "modal",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 384
+    },
+    {
+      "trial": 226,
+      "variant": 4,
+      "perturb": "swap",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 227,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 228,
+      "variant": 4,
+      "perturb": "extra_step",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 372
+    },
+    {
+      "trial": 229,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 230,
+      "variant": 4,
+      "perturb": "rename_strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 231,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 270
+    },
+    {
+      "trial": 232,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 233,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 245
+    },
+    {
+      "trial": 234,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 235,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 15
+    },
+    {
+      "trial": 236,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 233
+    },
+    {
+      "trial": 237,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 238,
+      "variant": 4,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 238
+    },
+    {
+      "trial": 239,
+      "variant": 4,
+      "perturb": "swap",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 240,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 241,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 242,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 232
+    },
+    {
+      "trial": 243,
+      "variant": 4,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 260
+    },
+    {
+      "trial": 244,
+      "variant": 2,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 245,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 372
+    },
+    {
+      "trial": 246,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 375
+    },
+    {
+      "trial": 247,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 17
+    },
+    {
+      "trial": 248,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 249,
+      "variant": 4,
+      "perturb": "move",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 13
+    },
+    {
+      "trial": 250,
+      "variant": 4,
+      "perturb": "attrs",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 251,
+      "variant": 4,
+      "perturb": "modal",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 350
+    },
+    {
+      "trial": 252,
+      "variant": 4,
+      "perturb": "extra_step",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 371
+    },
+    {
+      "trial": 253,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 254,
+      "variant": 4,
+      "perturb": "rename_strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 255,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 249
+    },
+    {
+      "trial": 256,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 257,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 250
+    },
+    {
+      "trial": 258,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 14
+    },
+    {
+      "trial": 259,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 260,
+      "variant": 4,
+      "perturb": "swap",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 261,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 262,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 263,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 247
+    },
+    {
+      "trial": 264,
+      "variant": 4,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 257
+    },
+    {
+      "trial": 265,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 12
+    },
+    {
+      "trial": 266,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 267,
+      "variant": 4,
+      "perturb": "move",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 17
+    },
+    {
+      "trial": 268,
+      "variant": 4,
+      "perturb": "attrs",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 269,
+      "variant": 4,
+      "perturb": "modal",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 369
+    },
+    {
+      "trial": 270,
+      "variant": 4,
+      "perturb": "extra_step",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 391
+    },
+    {
+      "trial": 271,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 272,
+      "variant": 4,
+      "perturb": "rename_strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 273,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 274,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 267
+    },
+    {
+      "trial": 275,
+      "variant": 2,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 276,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 277,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 244
+    },
+    {
+      "trial": 278,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 254
+    },
+    {
+      "trial": 279,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 18
+    },
+    {
+      "trial": 280,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 281,
+      "variant": 4,
+      "perturb": "swap",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 282,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 283,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 284,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 270
+    },
+    {
+      "trial": 285,
+      "variant": 4,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 265
+    },
+    {
+      "trial": 286,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 14
+    },
+    {
+      "trial": 287,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 17
+    },
+    {
+      "trial": 288,
+      "variant": 1,
+      "perturb": "composite",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 2,
+      "heal_ms": 251
+    },
+    {
+      "trial": 289,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 808
+    },
+    {
+      "trial": 290,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 14
+    },
+    {
+      "trial": 291,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 292,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 12
+    },
+    {
+      "trial": 293,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 294,
+      "variant": 4,
+      "perturb": "move",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 18
+    },
+    {
+      "trial": 295,
+      "variant": 4,
+      "perturb": "attrs",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 296,
+      "variant": 4,
+      "perturb": "modal",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 1,
+      "heal_ms": 366
+    },
+    {
+      "trial": 297,
+      "variant": 4,
+      "perturb": "extra_step",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 1,
+      "heal_ms": 393
+    },
+    {
+      "trial": 298,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 299,
+      "variant": 2,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 300,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 2,
+      "heal_ms": 256
+    },
+    {
+      "trial": 301,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 14
+    },
+    {
+      "trial": 302,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 303,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 304,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 7
+    },
+    {
+      "trial": 305,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 306,
+      "variant": 4,
+      "perturb": "move",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 13
+    },
+    {
+      "trial": 307,
+      "variant": 4,
+      "perturb": "attrs",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 308,
+      "variant": 4,
+      "perturb": "modal",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 458
+    },
+    {
+      "trial": 309,
+      "variant": 4,
+      "perturb": "extra_step",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 403
+    },
+    {
+      "trial": 310,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 311,
+      "variant": 4,
+      "perturb": "rename_strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 312,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 261
+    },
+    {
+      "trial": 313,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 314,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 255
+    },
+    {
+      "trial": 315,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 14
+    },
+    {
+      "trial": 316,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 317,
+      "variant": 4,
+      "perturb": "swap",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 318,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 319,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 320,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 321,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 256
+    },
+    {
+      "trial": 322,
+      "variant": 4,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 268
+    },
+    {
+      "trial": 323,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 324,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 11
+    },
+    {
+      "trial": 325,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 326,
+      "variant": 4,
+      "perturb": "move",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 12
+    },
+    {
+      "trial": 327,
+      "variant": 4,
+      "perturb": "attrs",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 328,
+      "variant": 4,
+      "perturb": "modal",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 1,
+      "heal_ms": 365
+    },
+    {
+      "trial": 329,
+      "variant": 4,
+      "perturb": "extra_step",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 1,
+      "heal_ms": 431
+    },
+    {
+      "trial": 330,
+      "variant": 4,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 331,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 332,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 2,
+      "heal_ms": 262
+    },
+    {
+      "trial": 333,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 5
+    },
+    {
+      "trial": 334,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 6,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 335,
+      "variant": 2,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 336,
+      "variant": 4,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 337,
+      "variant": 4,
+      "perturb": "shuffle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 338,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 7
+    },
+    {
+      "trial": 339,
+      "variant": 4,
+      "perturb": "modal",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 361
+    },
+    {
+      "trial": 340,
+      "variant": 4,
+      "perturb": "extra_step",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 349
+    },
+    {
+      "trial": 341,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 342,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 240
+    },
+    {
+      "trial": 343,
+      "variant": 4,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 344,
+      "variant": 4,
+      "perturb": "shuffle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 345,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 7
+    },
+    {
+      "trial": 346,
+      "variant": 4,
+      "perturb": "modal",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 340
+    },
+    {
+      "trial": 347,
+      "variant": 4,
+      "perturb": "extra_step",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 350
+    },
+    {
+      "trial": 348,
+      "variant": 4,
+      "perturb": "throttle",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 349,
+      "variant": 1,
+      "perturb": "composite",
+      "success": true,
+      "steps": 6,
+      "extra_steps": 2,
+      "heal_ms": 242
+    },
+    {
+      "trial": 350,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 239
+    },
+    {
+      "trial": 351,
+      "variant": 4,
+      "perturb": "rename",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 8
+    },
+    {
+      "trial": 352,
+      "variant": 4,
+      "perturb": "strip",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 353,
+      "variant": 4,
+      "perturb": "move",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 2
+    },
+    {
+      "trial": 354,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 355,
+      "variant": 4,
+      "perturb": "attrs",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 356,
+      "variant": 4,
+      "perturb": "modal",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 360
+    },
+    {
+      "trial": 357,
+      "variant": 4,
+      "perturb": "extra_step",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 1,
+      "heal_ms": 363
     }
   ],
   "clock_delta": {
@@ -1864,5 +3232,5 @@
     "note": "wall-clock explore-vs-replay; token counts unmeasurable from webcmd output, no token claims"
   },
   "citation_note": "snippet-integrity (sha re-verified); page-presence verified at creation",
-  "recovery_entries": 138
+  "recovery_entries": 453
 }

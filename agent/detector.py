@@ -125,10 +125,31 @@ def check_post(page, name: str) -> tuple:
                 except Exception:
                     continue
                 if t:
-                    return True, t[:80]
+                    return True, t[:160]
             return False, "delivery_status_empty"
         except Exception:
             return False, "delivery_status_missing"
+    if name == "enquiry_confirmed":
+        # Positive proof only: the desk must say the enquiry was received. A bare
+        # "incomplete" validation message is NOT success (mirrors constraints.py).
+        sel = ('[data-testid="enquiry-status"], #status, '
+               'div[role="status"], [aria-live="polite"]')
+        try:
+            for el in page.locator(sel).all():
+                try:
+                    t = (el.inner_text() or "").strip()
+                except Exception:
+                    continue
+                if not t:
+                    continue
+                low = t.lower()
+                if "enquiry received" in low or "reference" in low:
+                    return True, t[:200]
+                if "incomplete" in low or "required" in low or "error" in low:
+                    return False, t[:200]
+            return False, "enquiry_status_empty"
+        except Exception:
+            return False, "enquiry_status_missing"
     return True, f"unknown_postcondition:{name}"
 
 

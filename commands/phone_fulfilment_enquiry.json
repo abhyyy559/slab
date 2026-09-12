@@ -1,0 +1,18 @@
+{
+  "workflow": "phone_fulfilment_enquiry",
+  "version": 1,
+  "created": "2026-09-12T00:00:00",
+  "site": "site_a",
+  "template": [
+    {"step": 1, "intent": "open_search", "url": "{{base}}/site_a/search.html", "precondition": "search_box_visible", "postcondition": "results_visible", "target": {"selector": "[data-testid=\"search-box\"]", "role": "searchbox", "name": "Search phones", "text": "Search phones", "landmark": "main"}},
+    {"step": 2, "intent": "apply_filter", "params": {"max_price": "{{budget}}", "min_ram": "{{ram}}"}, "precondition": "filters_visible", "postcondition": "results_filtered", "target": {"selector": "[data-testid=\"apply-filter\"]", "role": "button", "name": "Apply Filter", "text": "Apply Filter", "landmark": "main"}},
+    {"step": 3, "intent": "extract_cheapest", "postcondition": "product_selected", "target": {"selector": "[data-testid=\"product-card\"]", "role": "", "name": "", "text": "Rs", "landmark": "[data-testid=\"results\"]"}},
+    {"step": 4, "intent": "check_delivery", "url": "{{base}}/site_b/check.html", "precondition": "pin_input_visible", "postcondition": "delivery_status_visible", "target": {"selector": "[data-testid=\"check-button\"]", "role": "button", "name": "Check Delivery", "text": "Check Delivery", "landmark": "main"}, "irreversible": true},
+    {"step": 5, "intent": "submit_enquiry", "url": "{{base}}/site_b/enquiry.html", "precondition": "enquiry_form_visible", "postcondition": "enquiry_confirmed", "target": {"selector": "[data-testid=\"enquiry-submit\"]", "role": "button", "name": "Send enquiry", "text": "Send enquiry", "landmark": "main"}, "irreversible": true}
+  ],
+  "params": {"budget": "20000", "ram": "8", "pin": "500001", "base": "http://127.0.0.1:8000"},
+  "preconditions": ["login_not_required", "no_captcha"],
+  "negative_case": {"condition": "no_results", "action": "ABSTAIN", "constraint": "max_price AND min_ram"},
+  "regression_tests": ["variant_1", "variant_2", "variant_3", "variant_perturbed"],
+  "provenance": {"learned_by": "webcmd", "adapters": ["voltkart/search", "swiftship/check", "swiftship/enquiry"], "adapter_sources": "adapters/", "learned_at": "2026-09-12", "confidence_at_learn": 0.91}
+}

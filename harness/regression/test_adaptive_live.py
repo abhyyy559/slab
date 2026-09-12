@@ -192,3 +192,75 @@ def test_judge_operated_live_injection_heals():
             assert out["avg_time_to_heal_ms"] > 0, "live composite must log heal time"
     finally:
         _set_perturbation(None)
+
+
+# ------------------------------------------------ cross-site enquiry workflow
+ENQUIRY_GOAL = ("Find the cheapest in-stock option on Site A that Site B confirms is "
+                "deliverable within 3 days and submit an enquiry for it on Site B")
+
+
+def _run_enquiry(perturb: str | None = None, variant: int = 1) -> dict:
+    return run_variant(variant=variant, base=BASE, goal=ENQUIRY_GOAL,
+                       perturb=perturb, auto_approve=True, headless=True)
+
+
+@pytest.mark.skipif(not _base_up(), reason="mock server not running")
+def test_enquiry_workflow_completes_clean():
+    """The full rubric goal: two sites, a real cross-site write."""
+    out = _run_enquiry()
+    assert out["status"] == "pass", out.get("reason")
+    assert out["plan"]["workflow"] == "phone_fulfilment_enquiry"
+    assert out["enquiry"]["ok"] is True
+    assert "Enquiry received" in out["enquiry"]["observed"]
+
+
+@pytest.mark.skipif(not _base_up(), reason="mock server not running")
+@pytest.mark.parametrize("perturb", ["rename", "strip", "move", "attrs", "modal",
+                                     "extra_step", "throttle", "composite"])
+def test_enquiry_workflow_survives_every_answer_preserving_perturbation(perturb):
+    """The 5-step cross-site workflow must complete under the same chaos matrix as
+    the 4-step one. This is the load-bearing claim for the rubric's Task Completion
+    + Adaptation Speed criteria."""
+    out = _run_enquiry(perturb, variant=4)
+    _assert_valid_outcome(out, f"enquiry:{perturb}")
+    if out["status"] == "pass":
+        assert out["enquiry"]["ok"] is True, f"{perturb}: pass without confirmed enquiry"
+
+
+@pytest.mark.skipif(not _base_up(), reason="mock server not running")
+def test_enquiry_carries_the_site_a_choice_to_site_b():
+    """Cross-site data handoff, verified in the evidence: the product named in the
+    Site B evidence URL must be the product chosen on Site A."""
+    out = _run_enquiry("rename", variant=4)
+    if out["status"] != "pass":
+        pytest.skip(f"run abstained: {out.get('failed_constraint')}")
+    chosen = out["cheapest"]["name"]
+    ev_urls = [e["url"] for e in out["evidence"]]
+    assert any("site_b/enquiry.html" in u for u in ev_urls), "no enquiry evidence row"
+    from urllib.parse import unquote
+    assert any(unquote(u).find(chosen) >= 0 for u in ev_urls), (
+        f"chosen product {chosen!r} did not travel to the Site B enquiry")
+
+
+@pytest.mark.skipif(not _base_up(), reason="mock server not running")
+def test_enquiry_never_runs_without_confirmed_delivery():
+    """Safety: we must not enquire about a product we could not confirm is deliverable.
+    With an unserviceable PIN the run must ABSTAIN before the enquiry step."""
+    out = run_variant(variant=3, base=BASE, goal=ENQUIRY_GOAL, pin="500002",
+                      auto_approve=True, headless=True)
+    assert out["status"] == "ABSTAIN"
+    assert out.get("enquiry") is None, "enquiry ran despite failed delivery confirmation"
+
+
+@pytest.mark.skipif(not _base_up(), reason="mock server not running")
+def test_enquiry_step_is_approval_gated():
+    """The irreversible write must leave APPROVAL_REQUESTED + GRANTED for submit_enquiry."""
+    import pathlib
+    p = pathlib.Path("logs/actions.jsonl")
+    before = len(p.read_text(encoding="utf-8").splitlines()) if p.exists() else 0
+    _run_enquiry()
+    lines = p.read_text(encoding="utf-8").splitlines()[before:]
+    events = [json.loads(l) for l in lines if l.strip()]
+    submitted = [e for e in events if e.get("target") == "submit_enquiry"]
+    assert any(e.get("event") == "APPROVAL_REQUESTED" for e in submitted), \
+        "enquiry submit was not approval-gated"

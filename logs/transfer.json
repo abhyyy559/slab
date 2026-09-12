@@ -1,27 +1,9 @@
 {
-  "site": "https://books.toscrape.com/",
+  "site": "https://example.com/",
   "pattern": "cheapest-in-stock-under-budget",
-  "ts": 1789197564055,
-  "ground_confidence": 1.0,
-  "signals": [
-    "selector",
-    "text",
-    "visual",
-    "landmark"
-  ],
-  "status": "pass",
-  "cheapest": {
-    "title": "Starving Hearts (Triangular Trade Trilogy, #1)",
-    "price": 13.99
-  },
-  "visible_cards": 20,
-  "evidence": {
-    "claim": "Cheapest in-stock book under \u00a320.0: Starving Hearts (Triangular Trade Trilogy, #1) at \u00a313.99",
-    "url": "https://books.toscrape.com/",
-    "snippet_verbatim": "Starving Hearts (Triangular Trade Trilogy, #1)",
-    "char_offset": 34519,
-    "sha256": "7ed704e6199f54876efed500ff7e563d41e343ed1975cc8005be3d8d5c6f06fb",
-    "action_log_ref": 0
-  },
-  "elapsed_ms": 7156
+  "ts": 1789204025148,
+  "status": "ABSTAIN",
+  "failed_constraint": "no_product_cards",
+  "cards_seen": 0,
+  "ground_confidence": 0.018
 }

@@ -10,6 +10,7 @@ import re
 from dataclasses import dataclass, field, asdict
 
 WORKFLOW_PHONE = "phone_delivery_check"
+WORKFLOW_ENQUIRY = "phone_fulfilment_enquiry"
 
 
 @dataclass
@@ -45,6 +46,18 @@ DEFAULT_STEPS = [
      "command_ref": "phone_delivery_check:4"},
 ]
 
+# The fuller workflow: after Site B confirms deliverability, submit an enquiry for the
+# chosen product on Site B's enquiry desk. This is the rubric's own example
+# ("submit an enquiry for it on Site B") and makes the handoff a real cross-site write.
+ENQUIRY_STEPS = DEFAULT_STEPS + [
+    {"intent": "submit_enquiry", "site": "site_b", "expected_state": "enquiry_confirmed",
+     "command_ref": "phone_fulfilment_enquiry:5"},
+]
+
+# Words that ask for the enquiry/contact step specifically.
+ENQUIRY_HINTS = ("enquiry", "enquire", "inquiry", "inquire", "contact", "quote", "message",
+                 "reach out", "get in touch", "ask about")
+
 # Domains we have no mocks for. Checked FIRST so "cheapest medicine under Rs 500" is refused
 # instead of quietly running the phone workflow.
 UNSUPPORTED_DOMAINS = [
@@ -54,6 +67,13 @@ UNSUPPORTED_DOMAINS = [
     ("groceries", ("grocery", "groceries", "vegetables", "supermarket")),
 ]
 UNSUPPORTED_REGEX = [(r"\b\d+\s*mg\b", "medicine")]
+
+# Brand tokens the user can ask for ("prefer Pixel", "Samsung only"). Matched as a
+# case-insensitive substring of the catalog product name. Unknown brands yield
+# brand_unavailable ABSTAIN downstream — never silently swapped for another brand.
+BRANDS = ("pixel", "nova", "galaxy", "samsung", "apple", "iphone", "oneplus",
+          "xiaomi", "redmi", "realme", "motorola", "moto", "vivo", "oppo",
+          "nothing", "asus", "lenovo", "huawei", "honor")
 
 # Signals that tie a goal to the workflow we actually have.
 SUPPORTED_HINTS = ("phone", "mobile", "smartphone", "handset", "ram", "voltkart", "swiftship",
@@ -121,7 +141,8 @@ def plan_goal(goal: str, workflow: str = WORKFLOW_PHONE) -> Plan:
                 break
 
     # 2. does it look like the workflow we do have?
-    if plan.supported and not any(h in text for h in SUPPORTED_HINTS):
+    if plan.supported and not any(h in text for h in SUPPORTED_HINTS) \
+            and not any(b in text for b in BRANDS):
         plan.supported = False
         plan.unsupported.append(
             f"goal did not match any known workflow (known: {workflow} -- cheapest in-stock "
@@ -130,7 +151,14 @@ def plan_goal(goal: str, workflow: str = WORKFLOW_PHONE) -> Plan:
     if not plan.supported:
         return plan
 
-    # 3. extract parameters
+    # 3. does the goal ask for the enquiry/contact step? If so, use the longer workflow.
+    # Both share steps 1-4; the enquiry workflow appends the cross-site write.
+    if any(h in text for h in ENQUIRY_HINTS):
+        plan.workflow = WORKFLOW_ENQUIRY
+        plan.steps = [Step(**s) for s in ENQUIRY_STEPS]
+        plan.notes.append("goal asks to make contact -> workflow extended with submit_enquiry (Site B)")
+
+    # 4. extract parameters
     budget, _, _ = _first(BUDGET_PATTERNS, text)
     ram, _, _ = _first(RAM_PATTERNS, text)
     pin, _, _ = _first(PIN_PATTERNS, text, exclude=({budget} if budget else set()))
@@ -145,6 +173,11 @@ def plan_goal(goal: str, workflow: str = WORKFLOW_PHONE) -> Plan:
     if pin and str(pin) != str(budget):
         plan.params["pin"] = str(pin)
         plan.notes.append(f"PIN {pin} read from the goal")
+    for brand in BRANDS:
+        if re.search(r"\b" + re.escape(brand) + r"\b", text):
+            plan.params["brand"] = brand
+            plan.notes.append(f"brand '{brand}' read from the goal (hard filter, no substitution)")
+            break
 
     plan.params = {k: v for k, v in plan.params.items() if v is not None}
     if not plan.params:

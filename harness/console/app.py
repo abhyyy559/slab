@@ -162,6 +162,8 @@ def _argv(action: str, p: dict) -> list:
                 a += [f"--{key}", str(p[key])]
         if p.get("pin"):
             a += ["--pin", str(p["pin"])]
+        if p.get("brand"):
+            a += ["--brand", str(p["brand"])]
         if p.get("headed"):
             a += ["--headed"]
             if p.get("slowmo") not in (None, ""):
@@ -172,6 +174,10 @@ def _argv(action: str, p: dict) -> list:
                 a += ["--no-raise"]
         if p.get("channel"):
             a += ["--channel", str(p["channel"])]
+        if p.get("pause_on_low"):
+            a += ["--pause-on-low"]
+        if p.get("no_highlight"):
+            a += ["--no-highlight"]
         if p.get("approval_modal"):
             a += ["--no-yes"]
         return a
@@ -179,8 +185,11 @@ def _argv(action: str, p: dict) -> list:
         code = ("import json;from agent.reflect import run_guard;"
                 f"print(json.dumps(run_guard(base={base!r}),indent=2))")
         return [py, "-u", "-c", code]
-    if action == "gauntlet":
-        # One button: clean + all six perturbation types, headless, auto-approved.
+    if action == "probe":
+        code = ("import json;from harness.variants.transfer_probe import main as probe;"
+                f"print(json.dumps(probe({str(p.get('site_url') or 'https://books.toscrape.com/')!r}),indent=2))")
+        return [py, "-u", "-c", code]
+    if action == "gauntlet":        # One button: clean + all six perturbation types, headless, auto-approved.
         # Pass bar: every row pass AND extra <= 2.
         code = ("import json;from agent.replayer import run_variant;"
                 "GOAL='Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days';"
@@ -436,7 +445,7 @@ def api_state():
 def api_run():
     p = request.get_json(silent=True) or {}
     action = str(p.get("action") or "run")
-    if action not in ("run", "guard", "gauntlet", "bump", "rollback"):
+    if action not in ("run", "guard", "gauntlet", "probe", "bump", "rollback"):
         return jsonify({"error": f"unknown action {action!r}"}), 400
     active = _latest_job()
     if active and active["status"] == "running":

@@ -54,6 +54,21 @@
 - [x] **Test suite**: 40 fast unit tests (`test_chaos_engine.py`, `test_grounding.py`, upgraded `test_mock_contracts.py`) + 21 live adaptive-battery tests (`test_adaptive_live.py`) covering every perturbation end-to-end. All green.
 - [x] Console: generic `/perturb/<type>` injector, `/api/perturbations` catalogue, 12 chaos buttons, new presets (chaos_max, strip), slow-mo/keep-open inputs.
 
+## Track 01 rubric compliance (2026-09-12, "it should follow all this rule strictly")
+Audit of the codebase against every bullet of the official brief, then gap-closing.
+
+- [x] **Accept a plain-language goal** — `planner.plan_goal()` parses budget/RAM/PIN/brand from free text; unsupported domains ABSTAIN with `unsupported_goal` rather than silently running the wrong workflow.
+- [x] **Cross-site workflow that hands data from one site to another** — Site A's chosen product becomes Site B's enquiry subject (`?product=`), and Site B's delivery answer determines Site A's choice (loop, not hop).
+- [x] **Rubric's literal example goal** ("submit an enquiry for it on Site B") — was NOT implemented; the old workflow stopped at a delivery check. Built `mocks/site_b/enquiry.html` + `commands/phone_fulfilment_enquiry.json` (5 steps) + `_submit_enquiry()` in the replayer + planner routing + grounder synonyms. Verified end-to-end.
+- [x] **Detect unexpected state** — moved, renamed, new modal, extra step, slow load, error page: all six in `harness/perturbations.py`, all detected by `detector.scan()`.
+- [x] **Recover automatically** — re-locate (ARIA role + label + synonyms) / re-plan (dismiss) / backtrack, then verify. Never proceeds on an unverified postcondition.
+- [x] **Keep a readable action log** — per-run `logs/runs/<run_id>.md` transcript: every step, change, recovery and pause with timestamps (17 runs generated).
+- [x] *Stretch:* **Visual + DOM grounding** — 5-signal fusion survives testid strip + rename + move via structure, not ids.
+- [x] *Stretch:* **Confidence score + pause when low** — τ=0.70 gate; `--pause-on-low` calls the human instead of guessing. `LOW_CONFIDENCE_PAUSE` logged, counted in `stats.pauses`.
+- [x] *Stretch:* **Dashboard replaying the run with changes highlighted** — console + live in-page overlay (`agent/highlight.py`): cyan ground / amber change / green heal / red abstain, plus chaos banner.
+- [x] **Responsible design** — approval gate (browser modal, CLI fallback) before every irreversible action; enquiry write gated; no CAPTCHA/login/payments; extractive evidence only.
+- [x] Tests: **87 green** (53 unit + 34 live), incl. 12 new enquiry tests across 8 answer-preserving perturbations. Verified live: pass, extra 2, detect 25ms, heal 242ms, 3 evidence rows, `SS-734303`.
+
 ## Backlog
 - [ ] Medicine-finder swap: pharmacy + clinic mocks replace phone v0; re-verify v1 + v4 (the planner now refuses `medicine` goals with `unsupported_goal`, so lifting that refusal goes with this task)
 - [ ] README architecture diagram + ONE-PAGER metrics from real logs

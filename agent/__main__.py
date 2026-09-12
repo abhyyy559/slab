@@ -5,9 +5,10 @@ def cmd_run(a):
     from .replayer import run_variant
     out = run_variant(variant=a.variant, base=a.base, goal=a.goal or "",
                       perturb=a.perturb, auto_approve=(not a.no_yes), headless=(not a.headed),
-                      budget=a.budget, ram=a.ram, pin=a.pin,
+                      budget=a.budget, ram=a.ram, pin=a.pin, brand=a.brand,
                       slow_mo=a.slowmo, keep_open_ms=a.keep_open,
-                      raise_window=(not a.no_raise), channel=a.channel)
+                      raise_window=(not a.no_raise), channel=a.channel,
+                      interactive=a.pause_on_low, highlight=(not a.no_highlight))
     print(json.dumps(out, indent=2))
     if out.get("status") == "pass":
         print("\nEVIDENCE TABLE")
@@ -32,10 +33,15 @@ def main():
                    help="ms to hold the window on the result (headed default 6000)")
     r.add_argument("--no-raise", action="store_true", dest="no_raise",
                    help="do not force the window to the foreground")
+    r.add_argument("--no-highlight", action="store_true", dest="no_highlight",
+                   help="do not draw the live element/change overlay in the page")
+    r.add_argument("--pause-on-low", action="store_true", dest="pause_on_low",
+                   help="when grounding confidence is below the gate, pause for a human instead of auto-recovering")
     r.add_argument("--channel", default=None, help="browser channel, e.g. chrome or msedge")
     r.add_argument("--budget", type=int, default=None, help="override command budget (infeasible demo: 8000)")
     r.add_argument("--ram", type=int, default=None, help="override command min RAM (infeasible demo: 12)")
     r.add_argument("--pin", default=None)
+    r.add_argument("--brand", default=None, help="hard brand filter, e.g. pixel (no substitution)")
     l = sub.add_parser("learn")
     l.add_argument("--goal", default="")
     l.add_argument("--site", default="site_a")

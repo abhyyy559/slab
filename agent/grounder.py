@@ -28,6 +28,7 @@ SYNONYMS = {
     "Results": ["Matches", "Search results"],
     "Filters": ["Refinements"],
     "Apply": ["Refine"],
+    "Send enquiry": ["Send Query", "Submit enquiry"],
 }
 
 # Structural hints: what ARIA role / label a control should have even when its
@@ -36,6 +37,7 @@ ROLE_HINTS = {
     "Apply Filter": ("button", ["apply filter", "refine results", "apply", "refine", "filter"]),
     "Check Delivery": ("button", ["check delivery", "verify shipment", "check", "verify", "delivery"]),
     "Search": ("button", ["search", "look up", "find", "go"]),
+    "Send enquiry": ("button", ["send enquiry", "send query", "submit enquiry", "enquire"]),
 }
 
 # Landmarks a control may live inside (relaxed re-grounding sweeps these).

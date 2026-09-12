@@ -11,6 +11,7 @@ import pathlib
 
 A = pathlib.Path("mocks/site_a/search.html").read_text(encoding="utf-8")
 B = pathlib.Path("mocks/site_b/check.html").read_text(encoding="utf-8")
+E = pathlib.Path("mocks/site_b/enquiry.html").read_text(encoding="utf-8")
 
 
 def test_site_a_id_contracts():
@@ -55,3 +56,33 @@ def test_site_b_structure_contracts():
     assert 'role="status"' in B, "status div keeps role=status for structural read"
     # The page's own lookup helpers must survive an id strip.
     assert "pinEl()" in B and "statusEl()" in B and "checkButton()" in B
+
+
+# --- Enquiry desk (step 5: the irreversible cross-site write) ------------------
+def test_enquiry_id_contracts():
+    for tid in ("enquiry-product", "enquiry-name", "enquiry-contact",
+                "enquiry-message", "enquiry-submit", "enquiry-status"):
+        assert f'data-testid="{tid}"' in E, tid
+    assert ">Send enquiry</button>" in E
+    assert 'src="/chaos.js"' in E
+    assert "__chaosThrottleMs" in E
+
+
+def test_enquiry_structure_contracts():
+    # Must survive a testid strip + rename: accessible names, labels, live region.
+    for lab in ('aria-label="Product"', 'aria-label="Your name"',
+                'aria-label="Contact"', 'aria-label="Message"'):
+        assert lab in E, lab
+    assert 'role="status"' in E and 'aria-live="polite"' in E
+    assert 'id="status"' in E
+    # The page's own lookup helpers must survive an id/testid strip.
+    assert "productEl()" in E and "statusEl()" in E and "submitButton()" in E
+    # Positive-proof confirmation copy the detector greps for.
+    assert "Enquiry received" in E and "Reference" in E
+
+
+def test_enquiry_accepts_cross_site_product_handoff():
+    # The rubric's cross-site requirement: the product chosen on Site A arrives as a
+    # query param and lands in the form. Without this the handoff is decorative.
+    assert 'get("product")' in E or "get(\"product\")" in E, "enquiry must read ?product="
+    assert "productEl().value = q" in E or ".value = q" in E
