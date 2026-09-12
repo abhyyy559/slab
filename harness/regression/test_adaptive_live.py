@@ -70,16 +70,42 @@ def test_perturbation_preserves_pass_or_honest_abstain(perturb):
     out = _run(perturb)
     _assert_valid_outcome(out, perturb)
     if out["status"] == "pass":
-        assert out["cheapest"]["name"] == "Pixel Lite 8GB", (
-            f"{perturb}: expected Pixel Lite 8GB, got {out['cheapest']['name']}")
+        # The answer must match an independent re-derivation from the cards, i.e. the
+        # CHANGE did not move the choice. We do not pin a literal product name: the
+        # catalogue is a real search space and its minimum moves when it grows.
+        assert _is_cheapest_in_stock_eligible(out), (
+            f"{perturb}: picked {out['cheapest']['name']} but a cheaper in-stock "
+            f"eligible product existed in the same result set")
 
 
 def test_clean_run_is_green():
     out = _run(None, variant=1)
     _assert_valid_outcome(out, "clean")
     assert out["status"] == "pass"
-    assert out["cheapest"]["name"] == "Pixel Lite 8GB"
     assert out["extra_steps"] == 0, "clean run must not need recovery"
+    # The answer must be the *cheapest in-stock eligible* product, whatever that is.
+    # We assert the rule, not a frozen name: pinning "Pixel Lite 8GB" made this test
+    # fail the moment the catalogue grew a genuinely cheaper in-stock option, which is
+    # the search doing its job. See _assert_valid_outcome for the constraint checks.
+    assert _is_cheapest_in_stock_eligible(out), \
+        f"picked {out['cheapest']['name']} but a cheaper in-stock eligible product existed"
+
+
+def _is_cheapest_in_stock_eligible(out: dict) -> bool:
+    """Independent re-derivation of the answer from the cards the agent saw.
+
+    This is deliberately a second implementation of the rule: if the agent's own
+    minimum were wrong, comparing it against itself would prove nothing.
+    """
+    p = out["effective_params"]
+    cands = [c for c in out["cards"]
+             if c.get("in_stock", True)
+             and c["price"] <= p["budget"]
+             and c["ram"] >= p["ram"]]
+    if not cands:
+        return False
+    best = min(cands, key=lambda c: c["price"])
+    return out["cheapest"]["name"] == best["name"] and out["cheapest"]["price"] == best["price"]
 
 
 def test_composite_logs_recovery_and_still_passes():
@@ -136,6 +162,73 @@ def test_unsupported_goal_abstains():
                       auto_approve=True, headless=True)
     assert out["status"] == "ABSTAIN"
     assert out["failed_constraint"] == "unsupported_goal"
+
+
+# ------------------------------------------------------- in-stock is a constraint
+def test_never_chooses_an_out_of_stock_product():
+    """'Cheapest in-stock' means availability is enforced, not decorative.
+
+    The catalogue deliberately contains out-of-stock listings, so a run must never
+    pick one: doing so would be a wrong answer that still looked like a pass.
+    """
+    import pathlib
+    p = pathlib.Path("logs/actions.jsonl")
+    before = len(p.read_text(encoding="utf-8").splitlines()) if p.exists() else 0
+
+    out = _run(None, variant=1)
+    assert out["status"] == "pass", out.get("reason", "")
+    chosen = out["cheapest"]["name"]
+
+    # Every card the agent considered carries the in_stock flag it read from the page.
+    cards = {c["name"]: c.get("in_stock", True) for c in out["cards"]}
+    assert cards.get(chosen, True) is True, f"chose an out-of-stock product: {chosen}"
+
+    # At least one out-of-stock listing exists in this catalogue...
+    oos = [c["name"] for c in out["cards"] if c.get("in_stock") is False]
+    assert oos, "this catalogue should contain at least one out-of-stock card"
+
+    # ...and the run that followed actually logged the exclusion.
+    tail = p.read_text(encoding="utf-8").splitlines()[before:] if p.exists() else []
+    events = [json.loads(l) for l in tail if l.strip()]
+    assert any(e.get("event") == "STOCK_FILTER" for e in events), \
+        "a run over a catalogue with OOS items must log the stock filter"
+
+
+def test_out_of_stock_cheapest_is_never_chosen():
+    """The catalogue's cheapest eligible listing is OUT OF STOCK on purpose.
+
+    Lava Blaze 8GB (Rs 9,999) satisfies price+RAM but cannot be bought. A naive
+    `min(price)` agent picks it and reports a confident pass on a product nobody can
+    buy. The correct behaviour is to skip it and pick the cheapest *available*
+    match — this test exists to catch a regression in that filter.
+    """
+    out = _run(None, variant=1)
+    assert out["status"] == "pass", out.get("reason", "")
+
+    cards = {c["name"]: c for c in out["cards"]}
+    # The trap must exist in the fixture, or this test proves nothing.
+    assert "Lava Blaze 8GB" in cards, "the out-of-stock trap product is missing"
+    assert cards["Lava Blaze 8GB"].get("in_stock") is False, "trap product must be OOS"
+    assert cards["Lava Blaze 8GB"]["price"] < out["cheapest"]["price"], \
+        "trap must be cheaper than the chosen product for this test to mean anything"
+
+    chosen = out["cheapest"]["name"]
+    assert chosen != "Lava Blaze 8GB", "chose the out-of-stock cheapest listing"
+    assert cards[chosen].get("in_stock") is True, f"{chosen} is not in stock"
+
+
+def test_out_of_stock_only_match_abstains_or_picks_a_valid_alternative():
+    """With a ceiling that admits both the OOS trap and in-stock alternatives, the run
+    must still land on an available product — or abstain naming a constraint."""
+    out = run_variant(variant=6, base=BASE, goal=GOAL, auto_approve=True,
+                      headless=True, budget=13000, ram=8)
+    assert out["status"] in ("pass", "ABSTAIN")
+    if out["status"] == "pass":
+        cards = {c["name"]: c.get("in_stock", True) for c in out["cards"]}
+        assert cards.get(out["cheapest"]["name"], True) is True
+        assert out["cheapest"]["price"] <= 13000
+    else:
+        assert out.get("failed_constraint")
 
 
 # --------------------------------------------------------------- evidence rigour

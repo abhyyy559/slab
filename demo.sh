@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # SENTRY demo launcher: starts the mock sites and the judge console + dashboard.
-#   ./demo.sh              both servers, then opens the dashboard
-#   OPEN=0 ./demo.sh       don't open a browser
+#   ./demo.sh              both servers, then opens the dashboard in a new tab
+#   OPEN=0 ./demo.sh       don't open a browser (CI / already have it open)
+#   PORT_MOCKS=9000 ./demo.sh
 #   PYTHON=/path/to/python ./demo.sh
+#   NOAUTO=1 ./demo.sh     start only the mock sites, not the console
 set -uo pipefail
 cd "$(dirname "$0")" || exit 1
 
@@ -92,7 +94,14 @@ echo
 echo "Ctrl-C to stop both."
 
 if [ "${OPEN:-1}" = "1" ]; then
-  "$PY" -c "import webbrowser; webbrowser.open('http://127.0.0.1:$PORT_CONSOLE')" >/dev/null 2>&1 || true
+  # Reuse a single named tab so re-running the demo does not pile up dashboard tabs.
+  "$PY" -c "
+import webbrowser
+try:
+    webbrowser.open('http://127.0.0.1:$PORT_CONSOLE', new=2)
+except Exception:
+    pass
+" >/dev/null 2>&1 || true
 fi
 
 wait

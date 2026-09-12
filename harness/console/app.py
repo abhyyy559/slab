@@ -168,8 +168,11 @@ def _argv(action: str, p: dict) -> list:
             a += ["--headed"]
             if p.get("slowmo") not in (None, ""):
                 a += ["--slowmo", str(p["slowmo"])]
-            if p.get("keep_open") not in (None, ""):
-                a += ["--keep-open", str(p["keep_open"])]
+            # Headed runs from the dashboard hold the final frame for a few seconds
+            # so the operator can read the result before the window closes itself.
+            # Pass keep_open explicitly to override; 0 means close immediately.
+            keep = p.get("keep_open")
+            a += ["--keep-open", str(keep if keep not in (None, "") else 4000)]
             if p.get("no_raise"):
                 a += ["--no-raise"]
         if p.get("channel"):
@@ -184,6 +187,10 @@ def _argv(action: str, p: dict) -> list:
     if action == "guard":
         code = ("import json;from agent.reflect import run_guard;"
                 f"print(json.dumps(run_guard(base={base!r}),indent=2))")
+        return [py, "-u", "-c", code]
+    if action == "learn":
+        code = ("import json;from agent.learner import learn_workflow;"
+                f"print(json.dumps(learn_workflow({str(p.get('goal') or '')!r},{base!r}),indent=2))")
         return [py, "-u", "-c", code]
     if action == "probe":
         code = ("import json;from harness.variants.transfer_probe import main as probe;"
@@ -441,11 +448,100 @@ def api_state():
     })
 
 
+@app.post("/api/plan")
+def api_plan():
+    """Dry-run the goal through the real planner: which workflow does it select?
+
+    The dashboard shows this *before* a run so the operator can see the routing
+    decision up front instead of inferring it from the trace afterwards. It calls
+    the same planner.plan_goal() the agent calls, so the two cannot disagree.
+    """
+    p = request.get_json(silent=True) or {}
+    goal = str(p.get("goal") or "")
+    try:
+        from agent.planner import plan_goal  # imported here: ROOT is on sys.path
+    except Exception as e:                                    # pragma: no cover
+        return jsonify({"error": f"planner unavailable: {e}"}), 500
+    try:
+        plan = plan_goal(goal)
+    except Exception as e:                                    # pragma: no cover
+        return jsonify({"error": str(e)}), 500
+    d = plan.to_dict()
+    supported = bool(d.get("supported", True))
+    return jsonify({
+        "goal": goal,
+        # A refused goal keeps the *default* workflow on the Plan object, which would
+        # read as "it will run the phone workflow". Report None so the UI cannot
+        # imply a run that will not happen.
+        "workflow": d.get("workflow") if supported else None,
+        "supported": supported,
+        "unsupported": d.get("unsupported", []),
+        "steps": ([s.get("intent") if isinstance(s, dict) else s for s in (d.get("steps") or [])]
+                  if supported else []),
+        "params": d.get("params", {}) if supported else {},
+        "notes": d.get("notes", []),
+    })
+
+
+DOC_FILES = {
+    "README.md": "Overview & setup",
+    "TASKS.md": "Build task list + rubric compliance",
+    "DECISIONS.md": "Decision log",
+    "FAILURES.md": "Honest limitations",
+    "ONE-PAGER.md": "Pitch one-pager",
+    "REHEARSAL.md": "Demo run-sheet",
+}
+_ALLOWED_DOCS = set(DOC_FILES)
+
+
+@app.get("/api/docs")
+def api_docs():
+    """List the repo docs the dashboard can render."""
+    out = []
+    for name, desc in DOC_FILES.items():
+        p = ROOT / name
+        if p.exists():
+            st = p.stat()
+            out.append({"name": name, "desc": desc, "bytes": st.st_size,
+                        "mtime": int(st.st_mtime * 1000)})
+    return jsonify({"docs": out})
+
+
+@app.get("/api/docs/<path:name>")
+def api_doc(name: str):
+    """Return one doc verbatim. Read-only, and restricted to the allow-list so a
+    crafted path can never escape the repo root."""
+    if name not in _ALLOWED_DOCS:
+        return jsonify({"error": "not found"}), 404
+    p = ROOT / name
+    if not p.exists():
+        return jsonify({"error": "not found"}), 404
+    try:
+        text = p.read_text(encoding="utf-8")
+    except Exception as e:                                    # pragma: no cover
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"name": name, "desc": DOC_FILES.get(name, ""),
+                    "text": text, "mtime": int(p.stat().st_mtime * 1000)})
+
+
+@app.get("/api/rubric")
+def api_rubric():
+    """Rubric coverage, read from competition.yaml so it cannot drift from the repo."""
+    path = ROOT / "competition.yaml"
+    if not path.exists():
+        return jsonify({"error": "competition.yaml not found"}), 404
+    try:
+        text = path.read_text(encoding="utf-8")
+    except Exception as e:                                    # pragma: no cover
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"text": text, "mtime": int(path.stat().st_mtime * 1000)})
+
+
 @app.post("/api/run")
 def api_run():
     p = request.get_json(silent=True) or {}
     action = str(p.get("action") or "run")
-    if action not in ("run", "guard", "gauntlet", "probe", "bump", "rollback"):
+    if action not in ("run", "guard", "gauntlet", "probe", "learn", "bump", "rollback"):
         return jsonify({"error": f"unknown action {action!r}"}), 400
     active = _latest_job()
     if active and active["status"] == "running":

@@ -18,13 +18,46 @@ def test_site_a_id_contracts():
     for tid in ("search-box", "search-button", "max-price", "min-ram",
                 "apply-filter", "results"):
         assert f'data-testid="{tid}"' in A, tid
-    assert A.count('<article data-testid="product-card"') == 3
+    # The catalogue is rendered client-side from CATALOG, so the card markup lives in
+    # a template string rather than as literal DOM. Pin the template + the data instead.
+    assert 'data-testid="product-card"' in A, "card template must set the product-card testid"
+    assert "var CATALOG = [" in A, "catalogue data block must exist"
     assert ">Search</button>" in A
     assert ">Apply Filter</button>" in A
-    assert "<h2>Pixel Lite 8GB</h2>" in A
-    assert "Rs 18,999" in A
+    assert 'data-testid="price"' in A, "cards must expose a price testid"
+    assert 'data-testid="product-link"' in A
     assert 'src="/chaos.js"' in A
     assert "__chaosThrottleMs" in A
+
+
+def test_site_a_catalogue_shape():
+    """The catalogue must stay a real search space: several brands, a spread of prices
+    and RAM, and at least one out-of-stock listing so 'cheapest in-stock' is a real
+    constraint and not a formality."""
+    import json
+    import re
+    block = A.split("var CATALOG = [", 1)[1].split("];", 1)[0]
+    rows = re.findall(r"\{([^{}]*)\}", block)
+    assert len(rows) >= 12, f"catalogue too small to be a search space: {len(rows)}"
+    names = re.findall(r'name:"([^"]+)"', block)
+    assert len(names) == len(rows), "every catalogue row needs a name"
+    assert len(set(names)) == len(names), "catalogue names must be unique"
+    prices = [int(p) for p in re.findall(r'price:(\d+)', block)]
+    rams = [int(r) for r in re.findall(r'ram:(\d+)', block)]
+    assert min(prices) < 10000 and max(prices) > 30000, "prices should span a real range"
+    assert min(rams) <= 6 and max(rams) >= 12, "RAM should span a real range"
+    assert "stock:false" in block, "keep at least one out-of-stock listing"
+    # Every card must render the machine-readable hooks the agent extracts from.
+    for attr in ("data-name=", "data-price=", "data-ram=", "data-stock=", "data-rating="):
+        assert attr in A, f"card template must emit {attr}"
+
+
+def test_site_a_out_of_stock_is_visible_but_not_renderable_as_available():
+    """An out-of-stock card must still render (a judge should see it) but carry the
+    signal the agent uses to exclude it."""
+    assert 'data-stock="' in A
+    assert "Out of stock" in A
+    assert "Notify me when available" in A
 
 
 def test_site_a_structure_contracts():
@@ -44,7 +77,11 @@ def test_site_b_id_contracts():
     for tid in ("pin-input", "check-button", "delivery-status"):
         assert f'data-testid="{tid}"' in B, tid
     assert ">Check Delivery</button>" in B
-    assert "Delivery available to PIN 500001 in 2-3 days" in B
+    # The page computes deliverability per-product, so the exact sentence lives in the
+    # script. Pin the outcomes the agent's constraint checker must classify correctly.
+    assert "Delivery available to PIN " in B and "in 2-3 days" in B
+    assert "Not serviceable:" in B, "unserved-product message must exist"
+    assert "outside the 3-day metro SLA" in B, "slow-line message must exist"
     assert 'src="/chaos.js"' in B
     assert "__chaosThrottleMs" in B
 

@@ -2,156 +2,179 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SENTRY — control & trace</title>
+<title>SENTRY — browser workspace</title>
 <style>
   :root {
-    --bg:#0a1020; --panel:#111a2e; --panel2:#0e1729; --line:#1f2b45; --ink:#e6edf7;
-    --muted:#8b9ab5; --dim:#5c6b8a;
-    --blue:#60a5fa; --green:#34d399; --amber:#fbbf24; --red:#f87171; --purple:#a78bfa; --cyan:#22d3ee;
+    color-scheme:light;
+    --bg:#f5f4ef; --panel:#fff; --panel2:#f7f8fa; --line:#e1e4e9; --ink:#242b3b;
+    --muted:#596375; --dim:#687184; --blue:#525aa0; --green:#247467; --amber:#91621b;
+    --red:#ad424d; --purple:#756097; --cyan:#287579;
   }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif; }
-  code, .mono { font-family:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace; }
-
-  header { position:sticky; top:0; z-index:20; background:linear-gradient(180deg,#0d1628,#0b1324);
-           border-bottom:1px solid var(--line); padding:12px 20px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-  .brand { font-weight:800; letter-spacing:2px; font-size:16px; }
-  .brand span { color:var(--blue); }
-  .tag { color:var(--muted); font-size:12px; }
-  .pills { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
-  .pill { font-size:12px; border:1px solid var(--line); background:var(--panel2); border-radius:20px; padding:4px 12px; color:var(--muted); }
+  [hidden] { display:none !important; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.6 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif; }
+  code,.mono { font-family:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace; overflow-wrap:anywhere; }
+  button,input,textarea,select { font:inherit; }
+  button,summary,input,textarea,select { -webkit-tap-highlight-color:transparent; }
+  :focus-visible { outline:3px solid #858bc2; outline-offset:3px; }
+  .skip-link { position:absolute; left:20px; top:-80px; z-index:30; background:white; padding:12px; color:var(--blue); }
+  .skip-link:focus { top:12px; }
+  header { background:#fffefa; border-bottom:1px solid var(--line); }
+  .header-inner { max-width:1440px; margin:auto; padding:23px 40px; display:flex; gap:20px; align-items:center; }
+  .brand { display:flex; align-items:center; gap:12px; font-size:19px; font-weight:750; letter-spacing:3px; }
+  .brand-mark { width:36px; height:36px; border:1px solid #ccd0e5; border-radius:11px; background:#eeeff8; display:grid; place-items:center; color:var(--blue); letter-spacing:0; font-size:21px; }
+  .tag { color:var(--dim); border-left:1px solid var(--line); padding-left:20px; font-size:13px; }
+  .pills { margin-left:auto; display:flex; gap:12px; flex-wrap:wrap; }
+  .pill { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px; }
   .pill b { color:var(--ink); font-weight:600; }
-  .pill.ok b { color:var(--green); } .pill.bad b { color:var(--red); }
-  .pill.run b { color:var(--amber); }
-  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--green); margin-right:6px; }
+  .pill.run b { color:var(--green); }
+  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--green); margin-right:3px; }
   .dot.off { background:var(--red); }
-
-  main { display:grid; grid-template-columns:390px minmax(0,1fr); gap:16px; padding:16px 20px 40px; align-items:start; }
-  @media (max-width:1080px){ main { grid-template-columns:1fr; } }
-
-  .panel { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; }
-  .panel h2 { margin:0 0 4px; font-size:13px; text-transform:uppercase; letter-spacing:1.3px; color:var(--muted); }
-  .panel .sub { color:var(--dim); font-size:12px; margin:0 0 14px; }
-  .stack { display:flex; flex-direction:column; gap:16px; }
-
-  label.f { display:block; font-size:12px; color:var(--muted); font-weight:600; margin:12px 0 5px; }
-  input[type=text], textarea, select {
-    width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--ink);
-    border-radius:9px; padding:9px 11px; font-size:13px; font-family:inherit; outline:none;
-  }
-  input[type=text]:focus, textarea:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(96,165,250,.14); }
-  textarea { resize:vertical; min-height:62px; }
-  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-
-  .note { font-size:11.5px; color:var(--amber); background:rgba(251,191,36,.07); border:1px solid rgba(251,191,36,.25);
-          border-radius:9px; padding:9px 11px; margin-top:10px; line-height:1.5; }
-  .note.grey { color:var(--muted); background:rgba(139,154,181,.06); border-color:var(--line); }
-
-  button { font-family:inherit; cursor:pointer; border-radius:9px; border:1px solid var(--line);
-           background:var(--panel2); color:var(--ink); padding:9px 13px; font-size:13px; font-weight:600; }
-  button:hover:not(:disabled) { border-color:var(--blue); }
-  button:disabled { opacity:.45; cursor:not-allowed; }
-  button.primary { background:linear-gradient(135deg,#2563eb,#1d4ed8); border-color:#2563eb; color:#fff; }
-  button.primary:hover:not(:disabled) { background:linear-gradient(135deg,#3b82f6,#2563eb); }
-  button.sm { font-size:12px; padding:6px 10px; font-weight:500; }
-  button.ghost { background:transparent; }
-  button.wide { width:100%; margin-top:14px; padding:12px; font-size:14px; }
-  .row { display:flex; gap:8px; flex-wrap:wrap; }
-  .presets { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .presets button { text-align:left; font-weight:500; font-size:12.5px; padding:10px; line-height:1.35; }
-  .presets button small { display:block; color:var(--dim); font-weight:400; margin-top:3px; font-size:11px; }
-  .presets button.sel { border-color:var(--blue); background:rgba(96,165,250,.12); }
-  .toog { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); margin:10px 0; }
-  .toog input { accent-color:var(--blue); }
-  .rowchk { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
-  .rowchk > div { flex:1; min-width:120px; }
-  .rowchk input { width:100%; padding:8px 10px; background:var(--panel2); border:1px solid var(--line); color:var(--ink); border-radius:8px; font-size:13px; }
-
-  .chaos { display:flex; gap:6px; flex-wrap:wrap; }
-  .chaos button { font-size:12px; padding:7px 10px; }
-  .chaos button.on { border-color:var(--amber); color:var(--amber); background:rgba(251,191,36,.1); }
-
-  /* trace */
-  .jobbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
-  .jobbar .id { font-size:12px; color:var(--dim); }
-  .metric { background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:8px 12px; text-align:center; min-width:92px; }
-  .metric b { display:block; font-size:17px; }
-  .metric span { font-size:11px; color:var(--muted); }
-  .metric.good b { color:var(--green); } .metric.warn b { color:var(--amber); }
-
-  #timeline { max-height:60vh; overflow:auto; border:1px solid var(--line); border-radius:12px; background:var(--panel2); }
-  #timeline:empty::before { content:"Run a scenario — the agent's grounded steps, recoveries, hash chain and approvals stream in here live."; display:block; padding:22px; color:var(--dim); font-size:12.5px; }
-  .ev { display:flex; gap:11px; padding:9px 13px; border-bottom:1px solid rgba(31,43,69,.65); font-size:13px; }
-  .ev:last-child { border-bottom:none; }
-  .ev .ic { width:20px; text-align:center; flex-shrink:0; }
-  .ev .bd { min-width:0; flex:1; }
-  .ev .hd { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; }
-  .ev .t { color:var(--dim); font-size:11px; margin-left:auto; white-space:nowrap; }
-  .ev .d { color:var(--muted); font-size:12px; margin-top:3px; word-break:break-word; }
-  .ev.step .name { font-weight:600; }
-  .ev.step .conf { color:var(--cyan); }
-  .ev.rec { background:rgba(167,139,250,.07); }
-  .ev.rec .name { color:var(--purple); font-weight:600; }
-  .ev.hash { background:rgba(34,211,238,.05); }
-  .ev.hash .name { color:var(--cyan); }
-  .ev.ver { background:rgba(52,211,153,.06); }
-  .ev.ver .name { color:var(--green); font-weight:600; }
-  .ev.appr { background:rgba(251,191,36,.06); }
-  .ev.appr .name { color:var(--amber); font-weight:600; }
-  .ev.abst { background:rgba(248,113,113,.07); }
-  .ev.abst .name { color:var(--red); font-weight:600; }
-  .ev.err { background:rgba(248,113,113,.09); }
-  .ev.err .name { color:var(--red); font-weight:600; }
-  .sig { display:inline-block; font-size:10.5px; border:1px solid var(--line); border-radius:20px; padding:1px 7px; color:var(--muted); margin-right:4px; }
-  .bar { height:4px; background:rgba(139,154,181,.2); border-radius:3px; width:110px; display:inline-block; vertical-align:middle; margin-left:6px; overflow:hidden; }
-  .bar i { display:block; height:100%; background:var(--cyan); }
-  .bar.low i { background:var(--amber); }
+  .intro { max-width:1440px; padding:46px 40px 30px; margin:auto; }
+  .eyebrow { color:var(--green); font-size:11px; font-weight:750; letter-spacing:2px; text-transform:uppercase; }
+  h1 { font-size:clamp(34px,4.3vw,58px); line-height:1.12; letter-spacing:-2.4px; font-weight:600; margin:13px 0 15px; }
+  .intro p { font-size:16px; color:var(--muted); margin:0; max-width:690px; }
+  main { max-width:1440px; margin:auto; display:grid; grid-template-columns:minmax(0,1.06fr) minmax(0,1fr); gap:28px; padding:0 40px 60px; align-items:start; }
+  .panel { min-width:0; background:var(--panel); border:1px solid var(--line); border-radius:22px; padding:28px; box-shadow:0 6px 28px rgba(36,43,59,.025); }
+  .section-head { display:flex; align-items:center; gap:14px; margin-bottom:22px; }
+  .section-head .num { font-size:12px; color:var(--dim); border:1px solid var(--line); border-radius:50%; width:30px; height:30px; display:grid; place-items:center; flex-shrink:0; }
+  h2 { font-size:19px; font-weight:650; letter-spacing:-.4px; margin:0; }
+  h3 { font-size:14px; margin:0; font-weight:650; }
+  .sub { color:var(--dim); font-size:12px; margin:3px 0 0; }
+  .section-head .badge { margin-left:auto; }
+  .badge { font-size:11px; color:var(--green); background:#edf6f2; border:1px solid #d5e7df; border-radius:20px; padding:3px 10px; white-space:nowrap; }
+  .tabs { display:flex; gap:4px; padding:5px; border-radius:12px; background:#f0f1f5; margin-bottom:25px; }
+  .tabs button { flex:1; border-color:transparent; background:transparent; color:var(--muted); font-size:13px; padding:10px 8px; }
+  .tabs button[aria-selected=true] { color:var(--blue); background:white; border-color:#e2e4ed; box-shadow:0 2px 5px rgba(36,43,59,.05); }
+  label.f { display:block; font-size:13px; color:var(--ink); font-weight:600; margin:13px 0 7px; }
+  textarea,input[type=text],input[type=number],input[type=url],select { width:100%; min-width:0; background:#fff; border:1px solid #d8dce4; color:var(--ink); border-radius:10px; padding:10px 12px; }
+  textarea { background:#fbfbfd; resize:vertical; min-height:130px; font-size:16px; line-height:1.65; }
+  input::placeholder,textarea::placeholder { color:var(--dim); opacity:1; }
+  input:focus,textarea:focus,select:focus { border-color:#858bc2; }
+  [aria-invalid=true] { border-color:var(--red) !important; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .row { display:flex; gap:9px; align-items:center; flex-wrap:wrap; }
+  button { cursor:pointer; border:1px solid var(--line); background:#fff; color:var(--ink); padding:10px 14px; border-radius:10px; font-size:13px; font-weight:600; transition:background .15s,border-color .15s; }
+  button:hover:not(:disabled) { border-color:#a3a9ce; background:#f7f7fc; }
+  button:disabled { opacity:.55; cursor:not-allowed; }
+  button.primary { background:#e9ebfb; border-color:#c9ceee; color:#414b8d; }
+  button.primary:hover:not(:disabled) { background:#dfe3f8; border-color:#9aa3d5; }
+  button.wide { width:100%; padding:14px 18px; font-size:15px; margin-top:18px; }
+  button.sm { font-size:12px; padding:7px 10px; }
+  button.ghost { color:var(--muted); background:transparent; }
+  .hint { font-size:12px; color:var(--dim); margin:8px 0 0; overflow-wrap:anywhere; }
+  .note { font-size:12px; color:var(--amber); background:#fcf8ee; border:1px solid #ede1c8; border-radius:10px; padding:12px 14px; margin:12px 0; }
+  .note.grey { color:var(--muted); background:var(--panel2); border-color:var(--line); }
+  .note.safe { color:#336b62; background:#f0f7f4; border-color:#d8e9e1; }
+  .note p { margin:6px 0 0; }
+  .toog { display:flex; align-items:flex-start; gap:10px; color:var(--muted); font-size:13px; margin:13px 0; }
+  input[type=checkbox] { accent-color:var(--blue); width:17px; height:17px; margin:3px 0 0; flex-shrink:0; }
+  .pref-heading { display:flex; justify-content:space-between; gap:12px; align-items:baseline; margin:24px 0 8px; }
+  .preference-row { display:grid; grid-template-columns:minmax(105px,.7fr) minmax(0,1fr) auto; gap:12px; align-items:center; margin:9px 0; }
+  .preference-row label { font-size:13px; font-weight:600; }
+  .preference-row button { font-weight:500; color:var(--muted); }
+  .add-pref { margin:12px 0; display:flex; gap:8px; }
+  .add-pref select { flex:1; }
+  .add-pref button { flex-shrink:0; }
+  .presets { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+  .presets button { text-align:left; font-size:12px; padding:12px; }
+  .presets small { display:block; font-size:11px; font-weight:400; color:var(--dim); margin-top:4px; }
+  .presets button.sel { border-color:#a7aed6; background:#f1f2fb; color:var(--blue); }
+  details.fold { border-top:1px solid var(--line); margin-top:23px; padding-top:17px; }
+  summary { cursor:pointer; color:var(--ink); font-weight:600; font-size:13px; padding:3px 0; }
+  summary::marker { color:var(--dim); }
+  details[open] > summary { margin-bottom:14px; }
+  .chaos { display:flex; gap:6px; flex-wrap:wrap; margin-top:14px; }
+  .chaos button { font-size:11px; padding:7px 9px; }
+  .chaos button.on { background:#fcf5e8; border-color:#dfc494; color:var(--amber); }
+  .error { color:var(--red); font-size:13px; background:#fff5f4; border-left:3px solid #d8999b; border-radius:5px; padding:10px 12px; margin-top:12px; overflow-wrap:anywhere; }
+  .error:empty { display:none; }
+  .interp { margin-top:22px; border:1px solid #dde6e2; border-radius:12px; background:#f6faf8; padding:16px; }
+  .interp-hd { display:flex; gap:10px; align-items:center; margin-bottom:9px; }
+  .rl { font-size:11px; color:var(--muted); font-weight:650; letter-spacing:.7px; text-transform:uppercase; }
+  .interp-state { margin-left:auto; font-size:11px; color:var(--muted); }
+  .interp-state.ok { color:var(--green); } .interp-state.bad { color:var(--red); } .interp-state.warn { color:var(--amber); }
+  .interp-body { font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
+  .interp-body b { color:var(--ink); }
+  .interp-body code { color:var(--cyan); }
+  .ichain { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin:10px 0; }
+  .ichip { display:flex; gap:5px; align-items:center; background:white; border:1px solid var(--line); border-radius:7px; padding:4px 7px; color:var(--ink); font-size:11px; }
+  .ichip .n { color:var(--green); font-weight:700; } .ichip .s { color:var(--dim); font-size:10px; }
+  .iparams { display:grid; grid-template-columns:1fr 1fr; gap:6px 14px; margin-top:12px; }
+  .iparams span { font-size:12px; } .iparams small { display:block; font-size:10px; color:var(--dim); }
+  .arrow { color:var(--dim); font-size:11px; }
+  .jobbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .jobbar:not(:empty) { margin-bottom:18px; }
+  .jobbar .id { font-size:11px; color:var(--dim); overflow-wrap:anywhere; }
+  .metric { background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:6px 12px; text-align:center; }
+  .metric b { display:block; font-size:14px; } .metric span { color:var(--dim); font-size:11px; }
+  #timeline,#recovery-timeline { max-height:480px; overflow:auto; border:1px solid var(--line); border-radius:12px; background:#fff; }
+  #timeline:empty::before,#recovery-timeline:empty::before { display:block; padding:20px; font-size:12px; color:var(--dim); }
+  #timeline:empty::before { content:"Your browser steps will appear here as they happen."; }
+  #recovery-timeline:empty::before { content:"No recovery or integrity events yet."; }
+  .ev { display:flex; gap:9px; padding:11px 12px; border-bottom:1px solid var(--line); font-size:12px; }
+  .ev:last-child { border-bottom:0; } .ev .ic { width:17px; text-align:center; flex-shrink:0; color:var(--dim); }
+  .ev .bd { min-width:0; flex:1; } .ev .hd { display:flex; align-items:baseline; flex-wrap:wrap; gap:7px; }
+  .ev .name { overflow-wrap:anywhere; } .ev .t { margin-left:auto; color:var(--dim); font-size:10px; white-space:nowrap; }
+  .ev .d { color:var(--muted); font-size:11px; overflow-wrap:anywhere; margin-top:4px; }
+  .ev.step .name { font-weight:600; } .ev.rec { background:#f7f4fa; } .ev.rec .name { color:var(--purple); }
+  .ev.hash { background:#f2f8f8; } .ev.hash .name { color:var(--cyan); }
+  .ev.appr { background:#fcf8ef; } .ev.appr .name { color:var(--amber); }
+  .ev.abst,.ev.err { background:#fff5f4; } .ev.abst .name,.ev.err .name { color:var(--red); }
+  .sig { display:inline-block; font-size:10px; border:1px solid var(--line); border-radius:5px; padding:1px 6px; color:var(--muted); margin-right:4px; }
+  .bar { height:4px; background:#e3e9e8; border-radius:3px; width:65px; display:inline-block; vertical-align:middle; margin-left:5px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:#78a49d; } .bar.low i { background:#c5a05e; }
   .ok-chip { color:var(--green); } .bad-chip { color:var(--red); } .warn-chip { color:var(--amber); }
-
-  details.raw { margin-top:12px; }
-  details.raw summary { cursor:pointer; color:var(--muted); font-size:12.5px; }
-  pre.raw { background:#060b16; border:1px solid var(--line); border-radius:10px; padding:12px; overflow:auto;
-            max-height:280px; font-size:11.5px; color:#9fb3d1; margin:10px 0 0; }
-
-  /* result */
-  #result:empty::before { content:"Result card appears when the run finishes: status, chosen product, both evidence rows with char offsets + sha256, and recovery cost."; display:block; color:var(--dim); font-size:12.5px; }
-  .rcards { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:14px; }
-  .rc { background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:12px 14px; }
-  .rc span { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; }
-  .rc b { display:block; font-size:17px; margin-top:4px; }
-  .rc small { color:var(--dim); font-size:11.5px; }
-  table { width:100%; border-collapse:collapse; font-size:12.5px; }
-  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
-  th { color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.7px; }
-  td.mono { font-size:11.5px; color:#9fb3d1; word-break:break-all; }
-  .verdict { font-size:15px; font-weight:700; padding:10px 14px; border-radius:10px; display:inline-block; margin-bottom:12px; }
-  .verdict.pass { color:var(--green); background:rgba(52,211,153,.1); border:1px solid rgba(52,211,153,.3); }
-  .verdict.abstain { color:var(--amber); background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.3); }
-  .verdict.fail { color:var(--red); background:rgba(248,113,113,.1); border:1px solid rgba(248,113,113,.3); }
-  .hint { font-size:11.5px; color:var(--dim); margin-top:10px; }
-
-  /* plan rail */
-  .rail { display:flex; align-items:center; gap:7px; flex-wrap:wrap; background:var(--panel2);
-          border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:12px; }
-  .rail .rl { font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.9px; }
-  .pstep { display:flex; align-items:center; gap:7px; border:1px solid var(--line); border-radius:20px;
-           padding:5px 11px; background:#0b1424; font-size:12.5px; color:var(--muted); transition:border-color .2s; }
-  .pstep .idx { width:17px; height:17px; border-radius:50%; background:rgba(139,154,181,.3); color:#0a1020;
-                display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; flex-shrink:0; }
-  .pstep .meta { font-size:11px; color:var(--dim); }
-  .pstep.active { border-color:var(--blue); color:var(--ink); box-shadow:0 0 0 3px rgba(96,165,250,.12); }
-  .pstep.active .idx { background:var(--blue); }
-  .pstep.done { border-color:rgba(52,211,153,.5); color:var(--green); }
-  .pstep.done .idx { background:var(--green); }
-  .pstep.healed { border-color:rgba(167,139,250,.6); }
-  .pstep.skipped { border-color:rgba(248,113,113,.45); color:var(--red); opacity:.85; }
-  .pstep.skipped .idx { background:var(--red); }
-  .pstep .hb { font-size:10.5px; color:var(--purple); border:1px solid rgba(167,139,250,.45);
-               border-radius:20px; padding:0 6px; }
-  .arrow { color:var(--dim); font-size:12px; }
-  .rail.refused { border-color:rgba(248,113,113,.5); color:var(--red); font-size:12.5px; }
-  .rail.refused b { color:var(--red); }
+  details.raw { margin-top:15px; } details.raw summary { font-size:12px; color:var(--muted); }
+  pre.raw { background:#f5f6f8; border:1px solid var(--line); border-radius:10px; padding:14px; max-height:280px; overflow:auto; font-size:11px; color:var(--muted); }
+  #result { overflow-x:auto; }
+  .empty-result { padding:40px 20px 46px; text-align:center; border:1px dashed #d9dfe4; border-radius:15px; background:linear-gradient(150deg,#fafbf9,#f7f8fc); }
+  .empty-mark { display:grid; place-items:center; margin:0 auto 20px; border-radius:17px; width:60px; height:60px; background:#ecf1ef; color:#698c82; font-size:26px; }
+  .empty-result h3 { font-size:20px; font-weight:550; letter-spacing:-.4px; }
+  .empty-result p { max-width:290px; margin:10px auto 0; color:var(--dim); font-size:13px; }
+  #result:empty::before { content:"The browser is working. Your result and evidence will appear here."; display:block; padding:32px 12px; color:var(--dim); font-size:13px; }
+  .rcards { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:10px; margin-bottom:18px; }
+  .rc { background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:14px; overflow-wrap:anywhere; }
+  .rc span { color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.9px; }
+  .rc b { display:block; font-size:18px; font-weight:600; margin:5px 0; } .rc small { font-size:11px; color:var(--dim); }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th,td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.7px; }
+  td.mono { color:var(--muted); font-size:11px; word-break:break-word; }
+  #history { overflow-x:auto; } #history table { min-width:580px; }
+  .hrow:hover { background:#f5f7fa; } .history-open { border:0; padding:0; font:inherit; color:var(--blue); text-decoration:underline; text-underline-offset:3px; }
+  .verdict { display:inline-block; font-size:13px; font-weight:700; padding:6px 12px; border-radius:7px; margin:0 0 15px; }
+  .verdict.pass { color:var(--green); background:#edf6f2; border:1px solid #d2e7df; }
+  .verdict.abstain { color:var(--amber); background:#fcf7ec; border:1px solid #eddfc1; }
+  .verdict.fail { color:var(--red); background:#fff3f2; border:1px solid #f0d7d7; }
+  .rail { display:flex; gap:7px; align-items:center; flex-wrap:wrap; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:18px; }
+  .pstep { display:flex; gap:6px; align-items:center; border:1px solid var(--line); border-radius:8px; background:#fff; padding:6px 8px; font-size:11px; color:var(--muted); }
+  .pstep .idx { background:#eef0f5; color:var(--muted); width:17px; height:17px; border-radius:50%; display:grid; place-items:center; flex-shrink:0; font-size:10px; }
+  .pstep .meta,.rail .meta { color:var(--dim); font-size:10px; }
+  .pstep.active { border-color:#a3abd7; background:#f4f5ff; color:var(--blue); }
+  .pstep.done { border-color:#bad7cc; color:var(--green); } .pstep.done .idx { background:#e3f1ea; color:var(--green); }
+  .pstep.healed { border-color:#cbbcdc; } .pstep.skipped { color:var(--red); border-color:#e7c7cb; }
+  .pstep .hb { font-size:10px; color:var(--purple); }
+  .rail.refused { border-color:#e7c7cb; color:var(--red); font-size:12px; }
+  footer { max-width:1440px; padding:0 40px 26px; margin:auto; color:var(--dim); font-size:11px; display:flex; justify-content:space-between; gap:16px; }
+  @media (max-width:1050px) {
+    .header-inner { padding:20px 24px; } .intro { padding:34px 24px 25px; }
+    main { gap:20px; padding:0 24px 40px; } .panel { padding:22px; } .tag { display:none; }
+    .preference-row { grid-template-columns:100px minmax(0,1fr) auto; gap:8px; }
+  }
+  @media (max-width:820px) { main { grid-template-columns:1fr; } .panel { padding:25px; } }
+  @media (max-width:480px) {
+    .header-inner { padding:17px 18px; flex-wrap:wrap; gap:12px; } .brand { font-size:16px; }
+    .pills { gap:10px; } #p-chaos { display:none; } .pill { font-size:11px; }
+    .intro { padding:30px 18px 24px; } h1 { letter-spacing:-1.4px; } .intro p { font-size:14px; }
+    main { padding:0 12px 32px; gap:16px; } .panel { padding:20px 16px; border-radius:17px; }
+    .section-head { gap:10px; } h2 { font-size:18px; } .section-head .badge { font-size:10px; padding:3px 7px; }
+    .preference-row { grid-template-columns:1fr auto; } .preference-row label { grid-column:1/-1; }
+    .grid2 { grid-template-columns:1fr; gap:0; } .tabs button { font-size:12px; }
+    input[type=text],input[type=number],input[type=url],select { font-size:16px; }
+    footer { padding:0 18px 22px; flex-wrap:wrap; } .empty-result { padding:30px 12px; }
+  }
+  @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; transition:none !important; } }
 </style>
 </head>
 <body>
@@ -189,6 +212,16 @@
         <b>Try:</b> <code>cheapest phone under Rs 8000 with at least 12GB RAM</code> ·
         <code>cheapest mobile under 25000 to pin 500001</code> ·
         <code>cheapest medicine under Rs 500</code> (refused)
+      </div>
+
+      <!-- Live goal interpreter: the real planner is asked what this goal does,
+           so the routing decision is visible BEFORE the run, not inferred after. -->
+      <div class="interp" id="interp">
+        <div class="interp-hd">
+          <span class="rl">goal interpreter</span>
+          <span class="interp-state" id="interp-state">checking…</span>
+        </div>
+        <div id="interp-body" class="interp-body"></div>
       </div>
     </section>
 
@@ -242,6 +275,7 @@
       </div>
       <button class="primary wide" id="btn-run">▶ Run agent</button>
       <div class="hint" id="argv-hint"></div>
+      <div class="note grey" id="window-note"></div>
     </section>
 
     <section class="panel">
@@ -249,6 +283,7 @@
       <p class="sub">Guard = 5 variants. Bump = propose a lesson, accept only if the guard stays green.</p>
       <button class="wide" id="btn-guard" style="margin-top:4px">Run full guard (5 variants)</button>
       <button class="wide" id="btn-gauntlet" style="margin-top:4px">Run chaos matrix (clean + 6 perturbs)</button>
+      <button class="wide" id="btn-learn" style="margin-top:4px">Run learn (webcmd adapters → rows)</button>
       <div class="row" style="margin-top:8px">
         <input type="text" id="site" placeholder="https://books.toscrape.com/" style="flex:1">
         <button class="sm" id="btn-probe">probe live site</button>
@@ -268,9 +303,11 @@
       <div class="chaos" id="chaos"></div>
       <div class="note grey">For a fully deterministic run use the <code>composite</code> perturb preset above instead.</div>
       <div class="row" style="margin-top:12px">
-        <button class="sm ghost" onclick="window.open('http://127.0.0.1:8000/site_a/search.html','_blank')">open Site A</button>
-        <button class="sm ghost" onclick="window.open('http://127.0.0.1:8000/site_b/check.html','_blank')">open Site B</button>
+        <button class="sm ghost" id="btn-open-a">open Site A ↗</button>
+        <button class="sm ghost" id="btn-open-b">open Site B ↗</button>
       </div>
+      <div class="note grey">These open in a <b>new tab of your current browser</b> for a manual look.
+        The agent uses its own separate window — see the note under the run button.</div>
     </section>
   </div>
 
@@ -296,6 +333,17 @@
       <p class="sub">Persisted to <code>logs/dashboard-runs.jsonl</code>. Click a row to reload its result card.</p>
       <div id="costbar" class="hint"></div>
       <div id="history"></div>
+    </section>
+
+    <section class="panel" id="docs-panel">
+      <h2>Audit &amp; docs</h2>
+      <p class="sub">Read live from the repo — never a copy. Pick a file, or jump to the rubric.</p>
+      <div class="docbar" id="docs-tabs"></div>
+      <details class="raw" id="doc-wrap" open>
+        <summary id="doc-title">select a document</summary>
+        <pre class="raw docview" id="doc-body">—</pre>
+      </details>
+      <div class="hint" id="doc-meta"></div>
     </section>
   </div>
 </main>
@@ -377,6 +425,14 @@ function hint() {
   if (p.no_highlight) bits.push("--no-highlight");
   if (p.approval_modal) bits.push("--no-yes");
   $("#argv-hint").textContent = "python -m agent run " + bits.join(" ");
+  const wn = $("#window-note");
+  if (wn) {
+    wn.innerHTML = p.headed
+      ? "Headed run: <b>one</b> Chromium window opens, raised to the front, then <b>closes itself</b> "
+        + "when the run finishes (after " + esc(p.keep_open || "4000") + " ms on the last frame). "
+        + "It uses its own dedicated window — your browser tabs are untouched."
+      : "Headless run: no window opens. The trace below is the only view.";
+  }
 }
 
 for (const [k, p] of Object.entries(PRESETS)) {
@@ -405,6 +461,131 @@ for (const c of CHAOS) {
 ["#goal","#variant","#perturb","#budget","#ram","#pin","#brand","#headed","#approval_modal","#slowmo",
  "#highlight","#pause_on_low"]
   .forEach(s => { const e = $(s); if (e) e.addEventListener("input", hint); });
+
+/* ------------------------------------------------------- goal interpreter */
+/* Ask the real planner (server-side, same function the agent calls) what this
+   goal selects. Debounced so typing does not spam the endpoint. */
+const STEP_LABEL_SHORT = { open_search:"open search", apply_filter:"apply filter",
+                           extract_cheapest:"pick cheapest", check_delivery:"check delivery",
+                           submit_enquiry:"submit enquiry" };
+const STEP_SITE_SHORT  = { open_search:"A", apply_filter:"A", extract_cheapest:"A",
+                           check_delivery:"B", submit_enquiry:"B" };
+let interpTimer = null, interpReq = 0;
+
+function scheduleInterp() {
+  if (interpTimer) clearTimeout(interpTimer);
+  interpTimer = setTimeout(runInterp, 260);
+}
+
+async function runInterp() {
+  const goal = $("#goal").value.trim();
+  const box = $("#interp-body"), st = $("#interp-state");
+  if (!goal) {
+    st.textContent = "no goal"; st.className = "interp-state warn";
+    box.innerHTML = '<span style="color:var(--dim)">Type a goal to see which workflow it selects.</span>';
+    return;
+  }
+  const req = ++interpReq;
+  st.textContent = "…"; st.className = "interp-state";
+  let j;
+  try {
+    j = await (await fetch("/api/plan", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ goal })
+    })).json();
+  } catch (e) {
+    if (req === interpReq) { st.textContent = "offline"; st.className = "interp-state bad"; }
+    return;
+  }
+  if (req !== interpReq) return;                 // a newer keystroke already answered
+  if (j.error) { st.textContent = "error"; st.className = "interp-state bad";
+                 box.innerHTML = '<span style="color:var(--red)">' + esc(j.error) + "</span>"; return; }
+
+  if (!j.supported) {
+    st.textContent = "refused"; st.className = "interp-state bad";
+    box.innerHTML = "<b>ABSTAIN · unsupported_goal</b><br>"
+      + esc((j.unsupported || []).join("; ") || "goal did not map to a known workflow")
+      + '<br><span style="color:var(--dim)">No browser is launched. Nothing is submitted.</span>';
+    return;
+  }
+  const isEnq = j.workflow === "phone_fulfilment_enquiry";
+  st.textContent = isEnq ? "5 steps · cross-site write" : "4 steps";
+  st.className = "interp-state " + (isEnq ? "ok" : "ok");
+
+  const chain = (j.steps || []).map((s, i) =>
+    '<span class="ichip' + (s === "submit_enquiry" ? " enq" : "") + '">'
+    + '<span class="n">' + (i + 1) + "</span>" + esc(STEP_LABEL_SHORT[s] || s)
+    + '<span class="s">site ' + esc(STEP_SITE_SHORT[s] || "?") + "</span></span>"
+  ).join('<span class="arrow">&rarr;</span>');
+
+  const ps = Object.entries(j.params || {})
+    .map(([k, v]) => "<span>" + esc(k) + " = " + esc(v) + "</span>").join("");
+
+  let html = "workflow <code>" + esc(j.workflow) + "</code>"
+    + '<div class="ichain">' + chain + "</div>";
+  html += '<div class="iparams">' + (ps || '<span style="color:var(--dim)">params: command defaults (20000 / 8 / 500001)</span>') + "</div>";
+  if (isEnq) {
+    html += '<div style="margin-top:6px;color:var(--green)">Includes an irreversible cross-site write '
+          + "on Site B — it runs on the approval gate and only after delivery is confirmed.</div>";
+  }
+  if ((j.notes || []).length) {
+    html += '<div style="margin-top:6px;color:var(--dim)">' + esc(j.notes.join(" · ")) + "</div>";
+  }
+  box.innerHTML = html;
+}
+
+/* ----------------------------------------------------------- doc explorer */
+let docsLoaded = false, docActive = null;
+
+async function loadDocs() {
+  const tabs = $("#docs-tabs");
+  let j;
+  try { j = await (await fetch("/api/docs")).json(); }
+  catch (e) { tabs.innerHTML = '<span class="hint">docs unavailable</span>'; return; }
+  const docs = j.docs || [];
+  if (!docs.length) { tabs.innerHTML = '<span class="hint">no docs found</span>'; return; }
+
+  tabs.innerHTML = "";
+  for (const d of docs) {
+    const b = document.createElement("button");
+    b.textContent = d.name;
+    b.title = d.desc + " · " + Math.round(d.bytes / 1024) + " KB";
+    b.dataset.name = d.name;
+    b.onclick = () => showDoc(d.name);
+    tabs.appendChild(b);
+  }
+  // rubric is not a markdown doc — it is the scoring sheet, pulled from the repo.
+  const rb = document.createElement("button");
+  rb.textContent = "competition.yaml (rubric)";
+  rb.dataset.name = "__rubric__";
+  rb.onclick = () => showDoc("__rubric__");
+  tabs.appendChild(rb);
+
+  docsLoaded = true;
+  if (!docActive) showDoc(docs[0].name);
+}
+
+async function showDoc(name) {
+  docActive = name;
+  document.querySelectorAll("#docs-tabs button").forEach(b =>
+    b.classList.toggle("on", b.dataset.name === name));
+  const title = $("#doc-title"), body = $("#doc-body"), meta = $("#doc-meta");
+  title.textContent = name === "__rubric__" ? "competition.yaml" : name;
+  body.textContent = "loading…";
+
+  const url = name === "__rubric__" ? "/api/rubric" : "/api/docs/" + encodeURIComponent(name);
+  let j;
+  try { j = await (await fetch(url)).json(); }
+  catch (e) { body.textContent = "could not load " + name; return; }
+  if (j.error) { body.textContent = j.error; meta.textContent = ""; return; }
+  body.textContent = j.text || "(empty)";
+  const when = j.mtime ? new Date(j.mtime).toLocaleString() : "";
+  meta.textContent = (j.desc ? j.desc + " · " : "")
+    + Math.round((j.text || "").length / 1024) + " KB · live from the repo"
+    + (when ? " · modified " + when : "");
+}
+
+function refreshDocs() { if (!docsLoaded) loadDocs(); else { loadDocs(); } }
 
 /* -------------------------------------------------------------------- start */
 async function start(action, extra = {}) {
@@ -451,7 +632,7 @@ function finish() {
 }
 
 function setRunning(on) {
-  ["#btn-run","#btn-guard","#btn-gauntlet","#btn-probe","#btn-bump-good","#btn-bump-bad","#btn-rollback"]
+  ["#btn-run","#btn-guard","#btn-gauntlet","#btn-learn","#btn-probe","#btn-bump-good","#btn-bump-bad","#btn-rollback"]
     .forEach(s => $(s).disabled = on);
   $("#b-job").textContent = on ? "running" : "idle";
   $("#p-job").classList.toggle("run", on);
@@ -571,9 +752,21 @@ function renderResult(res, status) {
   const box = $("#result");
   if (!res) { box.innerHTML = '<div class="verdict fail">no JSON result parsed — see raw stdout</div>'; return; }
 
+  // learn: webcmd adapter rows + provenance
+  if (res.site_a_rows) {
+    const tbl = rows => "<table><thead><tr><th>name</th><th>price</th><th>ram / status</th></tr></thead><tbody>"
+      + rows.map(r => "<tr><td>" + esc(r.name || r.pin || "—") + '</td><td class="mono">' + esc(r.price ?? "—")
+        + '</td><td class="mono">' + esc(r.ram ?? r.status ?? "—") + "</td></tr>").join("") + "</tbody></table>";
+    box.innerHTML = '<div class="verdict pass">learned_by: webcmd</div>'
+      + "<h2 style=\"margin-top:12px\">Site A rows</h2>" + tbl(res.site_a_rows || [])
+      + "<h2 style=\"margin-top:12px\">Site B rows</h2>" + tbl(res.site_b_rows || [])
+      + '<p class="note">provenance: <b>' + esc((res.provenance || {}).learned_by || "webcmd")
+      + "</b> · adapters " + esc(((res.provenance || {}).adapters || []).join(", ")) + "</p>";
+    return;
+  }
+
   // gauntlet: clean + every perturbation type in one click
-  if (res.matrix) {
-    const n = res.matrix.filter(r => r.status === "pass").length;
+  if (res.matrix) {    const n = res.matrix.filter(r => r.status === "pass").length;
     box.innerHTML = '<div class="verdict ' + (res.status === "pass" ? "pass" : "fail") + '">'
       + esc(res.verdict || ("gauntlet " + n + "/7")) + '</div>'
       + "<table><thead><tr><th>perturb</th><th>status</th><th>extra</th><th>heal ms</th></tr></thead><tbody>"
@@ -840,15 +1033,30 @@ async function refreshState() {
 $("#btn-run").onclick = () => start("run");
 $("#btn-guard").onclick = () => start("guard");
 $("#btn-gauntlet").onclick = () => start("gauntlet");
+$("#btn-learn").onclick = () => start("learn", { goal: $("#goal").value.trim() });
 $("#btn-probe").onclick = () => start("probe", { site_url: $("#site").value.trim() || "https://books.toscrape.com/" });
 $("#btn-bump-good").onclick = () => start("bump", { mode: "good" });
 $("#btn-bump-bad").onclick = () => start("bump", { mode: "bad" });
 $("#btn-rollback").onclick = () => start("rollback", { to: 1 });
 
+// Open the mock sites in a NEW TAB of the browser already showing the dashboard,
+// rather than a new window, and reuse a single named tab per site so repeated
+// clicks do not pile up tabs.
+$("#btn-open-a").onclick = () => window.open("http://127.0.0.1:8000/site_a/search.html", "sentry_siteA");
+$("#btn-open-b").onclick = () => window.open("http://127.0.0.1:8000/site_b/check.html", "sentry_siteB");
+
 applyPreset("clean");
 refreshState();
 refreshHistory();
+loadDocs();
+runInterp();
 setInterval(refreshState, 2500);
+
+// The goal is the driver — re-interpret whenever it changes (debounced), and on
+// preset clicks (applyPreset rewrites the textarea programmatically).
+$("#goal").addEventListener("input", scheduleInterp);
+const _origApplyPreset = applyPreset;
+applyPreset = function (name) { _origApplyPreset(name); scheduleInterp(); };
 </script>
 </body>
 </html>

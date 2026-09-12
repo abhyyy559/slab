@@ -151,7 +151,7 @@
 
   <div class="col" id="results-zone">
     <div class="results-bar">
-      <div class="count" role="status" aria-live="polite">Showing <b id="shown">3</b> of <b>3</b> products</div>
+      <div class="count" role="status" aria-live="polite">Showing <b id="shown">24</b> of <b>24</b> products</div>
       <span class="applied" id="applied" hidden></span>
       <div class="spacer"></div>
       <label for="sort" style="font-size:13px;color:var(--muted)">Sort by</label>
@@ -163,64 +163,7 @@
       </select>
     </div>
 
-    <section data-testid="results" aria-label="Results">
-      <article data-testid="product-card" data-name="Nova X1 6GB" data-price="15999" data-ram="6" data-rating="4.1">
-        <div class="thumb" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="6" y="2" width="12" height="20" rx="3"/><line x1="10.5" y1="18.5" x2="13.5" y2="18.5"/>
-          </svg>
-        </div>
-        <h2>Nova X1 6GB</h2>
-        <div class="rating"><span class="stars">★★★★☆</span> 4.1 · 2,148 ratings</div>
-        <div class="chiprow"><span class="chip">6GB RAM</span><span class="chip">128GB</span><span class="chip">4G</span></div>
-        <div class="pricebox">
-          <span class="price" data-testid="price">Rs 15,999</span>
-          <span class="mrp">Rs 17,999</span>
-          <span class="off">11% off</span>
-        </div>
-        <div class="stock">In stock · ships today</div>
-        <div class="deliv">Delivery in 2–4 days</div>
-        <a data-testid="product-link" href="/site_a/product.html?name=Nova%20X1">View details</a>
-      </article>
-
-      <article data-testid="product-card" data-name="Pixel Lite 8GB" data-price="18999" data-ram="8" data-rating="4.6">
-        <div class="thumb" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="6" y="2" width="12" height="20" rx="3"/><line x1="10.5" y1="18.5" x2="13.5" y2="18.5"/>
-          </svg>
-        </div>
-        <h2>Pixel Lite 8GB</h2>
-        <div class="rating"><span class="stars">★★★★★</span> 4.6 · 5,903 ratings</div>
-        <div class="chiprow"><span class="chip">8GB RAM</span><span class="chip">128GB</span><span class="chip">5G</span></div>
-        <div class="pricebox">
-          <span class="price" data-testid="price">Rs 18,999</span>
-          <span class="mrp">Rs 21,499</span>
-          <span class="off">12% off</span>
-        </div>
-        <div class="stock">In stock · ships today</div>
-        <div class="deliv">Delivery in 2–3 days</div>
-        <a data-testid="product-link" href="/site_a/product.html?name=Pixel%20Lite">View details</a>
-      </article>
-
-      <article data-testid="product-card" data-name="Galaxy Max 12GB" data-price="24999" data-ram="12" data-rating="4.4">
-        <div class="thumb" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="6" y="2" width="12" height="20" rx="3"/><line x1="10.5" y1="18.5" x2="13.5" y2="18.5"/>
-          </svg>
-        </div>
-        <h2>Galaxy Max 12GB</h2>
-        <div class="rating"><span class="stars">★★★★☆</span> 4.4 · 3,317 ratings</div>
-        <div class="chiprow"><span class="chip">12GB RAM</span><span class="chip">256GB</span><span class="chip">5G</span></div>
-        <div class="pricebox">
-          <span class="price" data-testid="price">Rs 24,999</span>
-          <span class="mrp">Rs 27,999</span>
-          <span class="off">10% off</span>
-        </div>
-        <div class="stock">In stock · ships today</div>
-        <div class="deliv">Delivery in 3–5 days</div>
-        <a data-testid="product-link" href="/site_a/product.html?name=Galaxy%20Max">View details</a>
-      </article>
-    </section>
+    <section data-testid="results" aria-label="Results"></section>
 
     <div class="empty" id="empty" hidden>
       <b>No phones match these filters</b>
@@ -238,18 +181,114 @@
 <footer>VoltKart demo storefront · prices include GST · free delivery over Rs 999</footer>
 
 <script>
-var grid = document.querySelector('[data-testid="results"]');
-var cards = Array.prototype.slice.call(document.querySelectorAll('[data-testid="product-card"]'));
-cards.forEach(function (c, i) { c.dataset.idx = String(i); });
+/* ----------------------------------------------------------------------------
+   Catalogue
+   ----------------------------------------------------------------------------
+   Rendered client-side from data so the storefront can carry a realistic number
+   of listings without 400 lines of hand-written markup.
 
-function rupees(n) { return "Rs " + n.toLocaleString("en-IN"); }
-function priceOf(c) { return parseInt(c.dataset.price || c.getAttribute("data-price-m"), 10); }
-function ramOf(c) { return parseInt(c.dataset.ram || c.getAttribute("data-ram-m"), 10); }
+   DOM CONTRACTS (frozen — the agent's grounder and the chaos engine depend on
+   these, and test_mock_contracts.py pins them):
+     * section[data-testid="results"]            grid container
+     * article[data-testid="product-card"]       one listing
+       - data-name / data-price / data-ram / data-rating  (machine-readable)
+       - h2                                     visible name
+       - span[data-testid="price"]              visible price "Rs 18,999"
+       - a[data-testid="product-link"]          details link
+     * aside button text exactly "Apply Filter"    (chaos.js renames it)
+     * #fmax / #fmin + aria-labels "Max price" / "Min RAM"
+   Add or remove listings freely: bounds, sorting and filtering are all derived
+   from the data below.
+
+   In-stock is `stock: true`. An out-of-stock card still renders, so the agent
+   must filter on availability rather than assume every card is buyable.
+-------------------------------------------------------------------------- */
+var CATALOG = [
+  { name:"Nova X1 6GB",       price:15999, ram:6,  storage:128, net:"4G",  rating:4.1, stock:true,  days:"2–4 days", brand:"Nova" },
+  { name:"Pixel Lite 8GB",    price:18999, ram:8,  storage:128, net:"5G",  rating:4.6, stock:true,  days:"2–3 days", brand:"Pixel" },
+  { name:"Galaxy Max 12GB",   price:24999, ram:12, storage:256, net:"5G",  rating:4.4, stock:true,  days:"3–5 days", brand:"Galaxy" },
+  { name:"Nova Air 8GB",      price:17499, ram:8,  storage:128, net:"5G",  rating:4.3, stock:true,  days:"2–4 days", brand:"Nova" },
+  { name:"Pixel Core 6GB",    price:13499, ram:6,  storage:64,  net:"4G",  rating:4.0, stock:true,  days:"2–4 days", brand:"Pixel" },
+  { name:"Galaxy Lite 8GB",   price:16999, ram:8,  storage:128, net:"5G",  rating:4.2, stock:true,  days:"3–5 days", brand:"Galaxy" },
+  { name:"OnePlus Nord 8GB",  price:19999, ram:8,  storage:128, net:"5G",  rating:4.5, stock:true,  days:"2–3 days", brand:"OnePlus" },
+  { name:"Nova Prime 12GB",   price:22999, ram:12, storage:256, net:"5G",  rating:4.6, stock:true,  days:"2–3 days", brand:"Nova" },
+  { name:"Redmi Note 8GB",    price:12999, ram:8,  storage:128, net:"5G",  rating:4.2, stock:true,  days:"2–4 days", brand:"Redmi" },
+  { name:"Realme Narzo 6GB",  price:11499, ram:6,  storage:128, net:"4G",  rating:3.9, stock:true,  days:"2–4 days", brand:"Realme" },
+  { name:"Pixel Pro 12GB",    price:28999, ram:12, storage:256, net:"5G",  rating:4.7, stock:true,  days:"2–3 days", brand:"Pixel" },
+  { name:"Galaxy Ultra 12GB", price:34999, ram:12, storage:512, net:"5G",  rating:4.8, stock:true,  days:"3–5 days", brand:"Galaxy" },
+  { name:"Nova Neo 4GB",      price:8499,  ram:4,  storage:64,  net:"4G",  rating:3.7, stock:true,  days:"2–4 days", brand:"Nova" },
+  { name:"OnePlus CE 8GB",    price:18499, ram:8,  storage:128, net:"5G",  rating:4.4, stock:true,  days:"2–3 days", brand:"OnePlus" },
+  { name:"Moto Edge 8GB",     price:19499, ram:8,  storage:128, net:"5G",  rating:4.3, stock:true,  days:"3–4 days", brand:"Moto" },
+  { name:"Pixel Fold 12GB",   price:49999, ram:12, storage:512, net:"5G",  rating:4.7, stock:false, days:"—",       brand:"Pixel" },
+  { name:"Nova X2 16GB",      price:27499, ram:16, storage:512, net:"5G",  rating:4.7, stock:true,  days:"2–3 days", brand:"Nova" },
+  { name:"Galaxy S Lite 8GB", price:17999, ram:8,  storage:128, net:"5G",  rating:4.1, stock:false, days:"—",       brand:"Galaxy" },
+  { name:"Redmi Turbo 12GB",  price:21999, ram:12, storage:256, net:"5G",  rating:4.5, stock:true,  days:"2–4 days", brand:"Redmi" },
+  { name:"Vivo Y 6GB",        price:14499, ram:6,  storage:128, net:"4G",  rating:4.0, stock:true,  days:"2–4 days", brand:"Vivo" },
+  { name:"Oppo A 8GB",        price:16499, ram:8,  storage:128, net:"5G",  rating:4.1, stock:true,  days:"3–4 days", brand:"Oppo" },
+  { name:"Nova Mini 8GB",     price:15499, ram:8,  storage:128, net:"5G",  rating:4.2, stock:true,  days:"2–4 days", brand:"Nova" },
+  { name:"iQoo Z 8GB",        price:18999, ram:8,  storage:256, net:"5G",  rating:4.5, stock:true,  days:"2–3 days", brand:"iQoo" },
+  { name:"Nothing 2a 12GB",   price:23999, ram:12, storage:256, net:"5G",  rating:4.6, stock:true,  days:"2–3 days", brand:"Nothing" },
+
+  // Deliberately out of stock. This is the CHEAPEST 8GB listing in the catalogue,
+  // so it is the listing a naive "min(price)" agent picks. Filtering on availability
+  // is what makes "cheapest in-stock" a real constraint rather than decoration.
+  { name:"Lava Blaze 8GB",    price:9999,  ram:8,  storage:128, net:"5G",  rating:4.0, stock:false, days:"—",       brand:"Lava" },
+];
+
+function rupees(n) { return "Rs " + Number(n).toLocaleString("en-IN"); }
+function stars(r)   { var f = Math.round(r); return "★★★★★".slice(0, f) + "☆☆☆☆☆".slice(0, 5 - f); }
+function pctOff(p, mrp) { return mrp ? Math.round((1 - p / mrp) * 100) : 0; }
+
+/* Deterministic pseudo-MRP: ~1.12x the list price, rounded to a 9-ending figure,
+   so "11% off" style badges look plausible without hand-authoring every value. */
+function mrpOf(p) { return Math.ceil((p * 1.12) / 100) * 100 - 1; }
+
+function renderCatalog() {
+  var host = document.querySelector('[data-testid="results"]');
+  if (!host) return;
+  var html = CATALOG.map(function (c, i) {
+    var mrp = mrpOf(c.price), off = pctOff(c.price, mrp);
+    var fone = '<svg viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="currentColor" '
+             + 'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+             + '<rect x="6" y="2" width="12" height="20" rx="3"/><line x1="10.5" y1="18.5" x2="13.5" y2="18.5"/></svg>';
+    var stockCls = c.stock ? "stock" : "stock out";
+    var stockTxt = c.stock ? "In stock · ships today" : "Out of stock";
+    var delivTxt = c.stock ? ("Delivery in " + c.days) : "Notify me when available";
+    return '<article data-testid="product-card" data-idx="' + i + '" data-brand="' + c.brand + '"'
+      + ' data-name="' + c.name + '" data-price="' + c.price + '" data-ram="' + c.ram + '"'
+      + ' data-stock="' + (c.stock ? "1" : "0") + '" data-rating="' + c.rating + '">'
+      + '<div class="thumb">' + fone + '</div>'
+      + '<h2>' + c.name + '</h2>'
+      + '<div class="rating"><span class="stars">' + stars(c.rating) + '</span> ' + c.rating.toFixed(1) + '</div>'
+      + '<div class="chiprow"><span class="chip">' + c.ram + 'GB RAM</span>'
+      + '<span class="chip">' + c.storage + 'GB</span><span class="chip">' + c.net + '</span></div>'
+      + '<div class="pricebox"><span class="price" data-testid="price">' + rupees(c.price) + '</span>'
+      + '<span class="mrp">' + rupees(mrp) + '</span><span class="off">' + off + '% off</span></div>'
+      + '<div class="' + stockCls + '">' + stockTxt + '</div>'
+      + '<div class="deliv">' + delivTxt + '</div>'
+      + '<a data-testid="product-link" href="/site_a/product.html?name=' + encodeURIComponent(c.name) + '">View details</a>'
+      + '</article>';
+  }).join("");
+  host.innerHTML = html;
+  var total = document.querySelector(".results-bar .count b:last-child");
+  if (total) total.textContent = String(CATALOG.length);
+  var shown = document.getElementById("shown");
+  if (shown) shown.textContent = String(CATALOG.length);
+}
+
+renderCatalog();
+
+var cards = Array.prototype.slice.call(document.querySelectorAll('[data-testid="product-card"]'));
+
+function priceOf(c)  { return parseInt(c.dataset.price  || c.getAttribute("data-price-m"), 10); }
+function ramOf(c)    { return parseInt(c.dataset.ram    || c.getAttribute("data-ram-m"), 10); }
 function ratingOf(c) { return parseFloat(c.dataset.rating || c.getAttribute("data-rating-m")) || 0; }
-function nameOf(c) { return c.dataset.name || c.getAttribute("data-name-m") || (c.querySelector("h2") || {}).textContent || ""; }
+function inStock(c)  { var s = c.dataset.stock || c.getAttribute("data-stock-m"); return s === undefined || s === null || s === "1"; }
+function nameOf(c)   { return c.dataset.name || c.getAttribute("data-name-m") || (c.querySelector("h2") || {}).textContent || ""; }
+
 function liveCards() {
-  /* The chaos swap() moves the visible list into #chaos-list-container; always
-     operate on the list that is actually shown. */
+  /* chaos swap() moves the visible list into #chaos-list-container; always operate
+     on the list that is actually shown. */
   var live = document.querySelector('#chaos-list-container') || document.querySelector('[data-testid="results"]');
   return live ? Array.prototype.slice.call(live.querySelectorAll("article")) : [];
 }
@@ -267,12 +306,12 @@ function applyFilters() {
   var me = maxPriceEl(), re = minRamEl();
   var max = parseInt((me && me.value) || "0", 10);
   var minRam = parseInt((re && re.value) || "0", 10);
-  var visible = 0;
+  var visible = 0, inStockVisible = 0;
   liveCards().forEach(function (c) {
     var show = (priceOf(c) <= max && ramOf(c) >= minRam);
     if (c.getAttribute("data-chaos-hid")) { c.style.display = "none"; return; }
     c.style.display = show ? "" : "none";
-    if (show) visible++;
+    if (show) { visible++; if (inStock(c)) inStockVisible++; }
   });
   var empty = document.getElementById("empty");
   if (empty) empty.hidden = visible !== 0;
@@ -285,9 +324,9 @@ function applyFilters() {
 function sortCards(mode) {
   var byIdx = function (a, b) { return (+a.dataset.idx || 0) - (+b.dataset.idx || 0); };
   var cmp = byIdx;
-  if (mode === "price-asc") cmp = function (a, b) { return priceOf(a) - priceOf(b); };
+  if (mode === "price-asc")  cmp = function (a, b) { return priceOf(a) - priceOf(b); };
   if (mode === "price-desc") cmp = function (a, b) { return priceOf(b) - priceOf(a); };
-  if (mode === "rating") cmp = function (a, b) { return ratingOf(b) - ratingOf(a); };
+  if (mode === "rating")     cmp = function (a, b) { return ratingOf(b) - ratingOf(a); };
   liveCards().slice().sort(cmp).forEach(function (c) { c.parentNode.appendChild(c); });
 }
 

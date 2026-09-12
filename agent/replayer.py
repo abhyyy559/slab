@@ -306,12 +306,18 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
     if slow_mo is None:
         slow_mo = 250 if not headless else 0
     if keep_open_ms is None:
-        keep_open_ms = 6000 if not headless else 0
+        # Short by default. A headed run is a live demo: the window should appear,
+        # do the work, and get out of the way. Callers who want to study the final
+        # frame pass --keep-open explicitly (the console sets 4000 when headed).
+        keep_open_ms = 1500 if not headless else 0
     with sync_playwright() as pw:
         browser, context = bsession.launch_browser(
             pw, headless=headless, slow_mo=slow_mo, raise_window=raise_window, channel=channel)
         page = context.new_page()
         if not headless:
+            # One page, one window, raised once up front. We deliberately do NOT
+            # keep re-raising on a timer -- that fights the operator when they try
+            # to use another window during a long run.
             bsession.focus_window(page, raise_window=raise_window)
             log_action(event="BROWSER_WINDOW", mode="headed", raised=raise_window,
                        slow_mo=slow_mo, keep_open_ms=keep_open_ms,
@@ -400,17 +406,47 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                         const g = (n) => c.getAttribute('data-' + n) || c.getAttribute('data-' + n + '-m');
                         const h2 = c.querySelector('h2');
                         const priceTxt = (c.querySelector('.price') || {}).textContent || '';
+                        const stockAttr = g('stock');
+                        const body = c.innerText || '';
+                        // In-stock signal, best-effort and structure-first: an explicit
+                        // data-stock flag wins; otherwise read the visible stock line. A card
+                        // with no stock line at all is treated as available (older mocks).
+                        let inStock = true;
+                        if (stockAttr === '0') inStock = false;
+                        else if (stockAttr === '1') inStock = true;
+                        else if (/out of stock|notify me|unavailable/i.test(body)) inStock = false;
+                        else if (/in stock|ships today/i.test(body)) inStock = true;
                         return {
                             name: g('name') || (h2 ? h2.textContent.trim() : ''),
                             price: parseInt(g('price') || priceTxt.replace(/[^0-9]/g,''), 10),
-                            ram: parseInt(g('ram') || (c.innerText.match(/(\\d+)\\s*GB\\s*RAM/) || [])[1], 10),
-                            text: c.innerText
+                            ram: parseInt(g('ram') || (body.match(/(\\d+)\\s*GB\\s*RAM/) || [])[1], 10),
+                            in_stock: inStock,
+                            text: body
                         };
                     })
                     .filter(c => c.name && !isNaN(c.price));
             }""")
-            eligible = [c for c in cards if c["price"] <= budget and c["ram"] >= ram]
+            # "cheapest in-stock" is the goal: availability is a constraint, not a detail.
+            # Out-of-stock listings stay visible on the page (so a judge can see them) but
+            # are never eligible candidates — picking one would be a wrong answer that
+            # still looked like a pass.
+            available = [c for c in cards if c.get("in_stock", True)]
+            oos = [c for c in cards if not c.get("in_stock", True)]
+            if oos:
+                log_action(event="STOCK_FILTER", excluded=len(oos),
+                           detail=f"out of stock, not eligible: {[c['name'] for c in oos][:6]}")
+            eligible = [c for c in available if c["price"] <= budget and c["ram"] >= ram]
             if not eligible:
+                # Distinguish "nothing matches the filters" from "matches exist but are
+                # unavailable" — the second is a different, more interesting abstention.
+                matches = [c for c in cards if c["price"] <= budget and c["ram"] >= ram]
+                if matches and not [c for c in matches if c.get("in_stock", True)]:
+                    log_action(event="ABSTAIN", reason="no_in_stock_match",
+                               constraint="in_stock AND max_price AND min_ram")
+                    return {"status": "ABSTAIN", "failed_constraint": "in_stock AND max_price AND min_ram",
+                            "cards": cards, "plan": plan.to_dict(),
+                            "effective_params": {"budget": budget, "ram": ram, "pin": pin, "brand": brand},
+                            "variant": variant, "perturb": perturb}
                 log_action(event="ABSTAIN", reason="no_results", constraint="max_price AND min_ram")
                 return {"status": "ABSTAIN", "failed_constraint": "max_price AND min_ram",
                         "cards": cards, "plan": plan.to_dict(),
@@ -568,6 +604,10 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                    "avg_time_to_heal_ms": (sum(heal) // len(heal)) if heal else 0,
                    "avg_time_to_detect_ms": (sum(dtct) // len(dtct)) if dtct else 0,
                    "elapsed_ms": int((time.time() - t_start) * 1000),
+                   # The candidate set the decision was made from. Included so the
+                   # answer can be *independently re-derived* from the result rather
+                   # than taken on trust — same reasoning as extractive evidence.
+                   "cards": cards,
                    "variant": variant, "perturb": perturb}
             if enquiry:
                 out["enquiry"] = {k: v for k, v in enquiry.items() if k != "evidence"}

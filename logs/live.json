@@ -1,1 +1,1 @@
-{"run_id": "v4/throttle", "step": "0/4", "status": "running", "extra_steps": 0, "detect_ms": 0, "heal_ms": 0, "elapsed_ms": 0, "ts": 1789204292520}
+{"run_id": "v1/clean", "step": "4/4", "status": "pass", "extra_steps": 0, "detect_ms": 0, "heal_ms": 0, "elapsed_ms": 2179, "ts": 1789207589014}

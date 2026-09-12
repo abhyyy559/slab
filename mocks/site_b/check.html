@@ -129,14 +129,48 @@ function runCheck() {
   var pin = pe ? pe.value.trim() : "";
   var el = statusEl();
   if (!el) return;
-  // Loop-step-5 model: deliverability is per-PRODUCT, not per-PIN. Nova X1 is not
-  // stocked at the 500001 hub (?product=<name> selects the candidate under test),
-  // so the agent must fall back to the next-cheapest eligible pick.
+  // Loop-step-4 model: deliverability is per-PRODUCT, not per-PIN. Which products
+  // the 500001 hub can fulfil varies, so the agent must rank eligible candidates
+  // cheapest-first, test each, and fall back to the next when one is unserved.
+  //
+  // Outcome map (product -> { ok, days }):
+  //   * Nova X1 6GB         -> hub has no stock: not available
+  //   * Galaxy Ultra 12GB   -> premium line, 5-7 day lead: NOT within 3 days
+  //   * Pixel Fold 12GB     -> foldable line: not available
+  //   * Nova X1/X2 variants -> served in 2-3 days
+  //   * everything else     -> served in 2-3 days
+  // A product absent from the map is served on the standard metro SLA.
+  var SLOW = { "Galaxy Ultra 12GB": "5-7 days" };
+  var UNSERVED = { "Nova X1 6GB": 1, "Pixel Fold 12GB": 1 };
   var product = new URLSearchParams(location.search).get("product") || "";
-  var ok = (pin === "500001") && (product !== "Nova X1 6GB");
-  el.textContent = ok ? "Delivery available to PIN 500001 in 2-3 days" : ("Delivery not available to PIN " + pin);
+
+  var serviced = (pin === "500001");
+  var blocked = !!(product && UNSERVED[product]);
+  var slowDays = product && SLOW[product];
+
+  if (!serviced) {
+    el.textContent = "Delivery not available to PIN " + pin;
+    el.classList.add("show");
+    el.classList.add("bad");
+    return;
+  }
+  if (blocked) {
+    el.textContent = "Not serviceable: " + product + " is out of stock at the " + pin + " hub";
+    el.classList.add("show");
+    el.classList.add("bad");
+    return;
+  }
+  if (slowDays) {
+    // Served, but outside the 3-day promise the goal requires.
+    el.textContent = "Delivery available to PIN " + pin + " in " + slowDays
+                   + " (outside the 3-day metro SLA)";
+    el.classList.add("show");
+    el.classList.add("bad");
+    return;
+  }
+  el.textContent = "Delivery available to PIN " + pin + " in 2-3 days";
   el.classList.add("show");
-  el.classList.toggle("bad", !ok);
+  el.classList.remove("bad");
 }
 
 function updateNote() {

@@ -161,17 +161,16 @@ def focus_window(page, raise_window: bool = True) -> bool:
 def hold_open(ms: int, keep_foreground: bool = True) -> None:
     """Keep the final frame on screen so the operator can read it.
 
-    Chromium will not idle forever when unfocused, but the window stays mapped;
-    we keep it in the foreground for the whole dwell so the result is visible.
+    Chromium will not idle forever when unfocused, but the window stays mapped.
+    We raise ONCE at the start of the dwell and then leave the window alone: a
+    periodic re-raise fights the operator the moment they click another window,
+    which is exactly what makes a demo feel like it is hijacking the desktop.
     """
     if ms <= 0:
         return
-    end = time.time() + (ms / 1000.0)
-    # Periodic re-raise: some window managers demote us after a few seconds.
-    while time.time() < end:
-        if keep_foreground:
-            _bring_windows_to_front(timeout_s=0.4)
-        time.sleep(min(1.0, max(0.05, end - time.time())))
+    if keep_foreground:
+        _bring_windows_to_front(timeout_s=0.5)
+    time.sleep(ms / 1000.0)
 
 
 def describe_window() -> dict:

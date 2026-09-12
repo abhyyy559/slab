@@ -19,6 +19,20 @@ chosen on Site A becomes the enquiry subject on Site B, the form is filled struc
 submission goes through the same approval gate as any irreversible action. It is skipped entirely
 unless delivery was positively confirmed, so we never enquire about an unverifiable product.
 
+## Running it (Windows)
+`python` is frequently absent from PATH on Windows (Store stub / PATH-less install), and
+PowerShell does not support bash-style backslash line continuation. `run.cmd` handles both:
+
+```bat
+run.cmd start                            :: mock sites on :8000
+run.cmd dash                             :: judge console on :8765
+run.cmd run --goal "..." --variant 1     :: run the agent
+run.cmd run --goal "..." --headed        :: watchable, single foreground window
+run.cmd test                             :: full suite
+run.cmd test -k "not live"               :: fast unit only
+```
+It locates a Python that actually has `playwright` + `flask` and forwards arguments unchanged.
+
 ## Setup
 ```bash
 python -m venv .venv
@@ -29,6 +43,24 @@ python mocks/serve.py --port 8000
 python harness/console/app.py --port 8765   # then open http://127.0.0.1:8765
 python -m agent run --goal "Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days" --variant 1
 ```
+
+## Benchmark site (the search space is real)
+Site A (VoltKart) carries a **24-phone catalogue** rendered client-side from a `CATALOG`
+data block — several brands, prices from Rs 8,499 to Rs 49,999, RAM 4–16GB, ratings, and
+**two deliberately out-of-stock listings**. The cheapest 8GB listing in the catalogue
+(`Lava Blaze 8GB`, Rs 9,999) is out of stock on purpose: a naive `min(price)` agent picks
+it and reports a confident pass on a product nobody can buy. The agent filters on
+availability (`STOCK_FILTER` event) and chooses the cheapest **in-stock** eligible match.
+"Cheapest in-stock" is enforced, not decorative.
+
+Site B (SwiftShip) decides deliverability **per product**, so the cross-site handoff is a
+loop: some candidates are unserved at the hub, some are served but on a 5–7 day line that
+misses the 3-day promise. The agent ranks eligible candidates cheapest-first, tests each,
+and falls back to the next — or abstains honestly if none qualifies.
+
+To add a listing, edit the `CATALOG` array in `mocks/site_a/search.html`; bounds, filtering
+and sorting all derive from it. `test_mock_contracts.py` pins the shape (≥12 rows, unique
+names, a price/RAM spread, at least one out-of-stock row).
 
 ## Architecture
 ```
@@ -59,15 +91,22 @@ python -m agent run --goal "Find the cheapest in-stock option on Site A that Sit
 Entry: `python -m agent --help`. Frozen demo copy: `%LOCALAPPDATA%\sentry-demo` (no sync).
 
 ## Browser window (headed / demo mode)
-Headed runs are *demonstrations*, so they must be watchable:
+Headed runs are *demonstrations*, so they must be watchable **and** get out of the way:
+
+* **One window.** The agent creates exactly one page — never a tab per step.
+* **Raised once**, up front, matched by Chromium window class so no unrelated window is
+  disturbed. It is deliberately *not* re-raised on a timer: that fights the operator the
+  moment they click elsewhere.
+* **Closes itself** when the run ends, after holding the final frame briefly.
+
 ```bash
-python -m agent run --headed                                    # real, maximized, foreground window
+python -m agent run --headed                                    # default: 1.5s on the last frame
 python -m agent run --headed --slowmo 400 --keep-open 12000     # slower, holds result 12s
+python -m agent run --headed --keep-open 0                      # close as soon as it finishes
 python -m agent run --headed --no-raise                         # don't steal focus
 ```
-`agent/browser.py` raises the Chromium window to the top of the z-order (Win32 `SetForegroundWindow`, matched by
-window class so nothing else is disturbed), lands it on the current screen, and holds the final frame open for
-`--keep-open` ms (default 6000) after the run. `--slowmo` defaults to 250ms when headed. Failures degrade
+
+`agent/browser.py` lands the window on the current screen and maximizes it. Failures degrade
 gracefully instead of crashing the demo.
 
 **Live highlighting** (on by default when headed, `--no-highlight` to disable): an injected
@@ -78,6 +117,21 @@ It is pointer-events-free and never touches the DOM the agent grounds against.
 **Confidence pause** (`--pause-on-low`): when a step's grounding confidence falls below τ=0.70 and recovery
 cannot lift it, the agent stops and asks a human (browser modal, CLI fallback) instead of guessing. Each pause
 is logged as `LOW_CONFIDENCE_PAUSE` and counted in `stats.pauses`.
+
+## Dashboard (judge console, :8765)
+Beyond the live trace and result card, three panels exist for the judges' workflow:
+
+* **Goal interpreter** — before you run anything, the panel asks the *real* planner
+  (`POST /api/plan`) what the typed goal does: which workflow it selects, the step chain with
+  site badges, the parameters parsed out of the text, and an explicit refusal when the goal
+  hits a domain we have no mocks for. The routing decision is visible up front instead of
+  inferred from the trace afterwards. It is the same `plan_goal()` the agent calls, so the
+  two cannot disagree.
+* **Audit & docs** — renders `README/TASKS/DECISIONS/FAILURES/ONE-PAGER/REHEARSAL` and
+  `competition.yaml` **live from the repo** (`GET /api/docs`, `GET /api/rubric`), with size and
+  mtime. Never a copy, so it cannot drift from the code. The reader is allow-listed: any other
+  path returns 404, so a crafted URL cannot expose a file outside the list.
+* **Run history** — cross-run recovery-cost comparison; click a row to reload its result card.
 
 ## Chaos / adaptive-browsing matrix
 `harness/perturbations.py` is the catalogue (single source of truth, pinned by tests). Deterministic via
@@ -106,12 +160,20 @@ correct answer, not a failure. See DECISIONS.md.
 python -m pytest harness/regression -q                  # fast unit + live battery (skips if mocks down)
 python -m pytest harness/regression -q -k "not live"    # unit only, no browser
 ```
-Unit: `test_mock_contracts.py` (id + structure contracts for both sites incl. `enquiry.html`),
-`test_enquiry_workflow.py` (planner routing + command-file contracts for both workflows),
-`test_chaos_engine.py` (catalogue ↔ chaos.js parity, rename ↔ synonym parity), `test_grounding.py`
+Unit: `test_mock_contracts.py` (id + structure contracts for both sites incl. `enquiry.html`,
+plus catalogue-shape guards), `test_console_api.py` (`/api/plan` routing, `/api/docs`
+allow-list + path-traversal rejection, `/api/rubric`), `test_enquiry_workflow.py`
+(planner routing + command-file contracts for both workflows), `test_chaos_engine.py`
+(catalogue ↔ chaos.js parity, rename ↔ synonym parity), `test_grounding.py`
 (grounder/detector/constraints), `test_constraints.py` (negative-match). Live: `test_adaptive_live.py`
-runs the real agent against every perturbation for **both** workflows and asserts pass-or-honest-ABSTAIN
-— never a false pass. **87 tests, all green 2026-09-12** (53 fast unit + 34 live, 216s).
+runs the real agent against every perturbation for **both** workflows and asserts
+pass-or-honest-ABSTAIN — never a false pass — plus the in-stock constraint. **109 tests, all
+green 2026-09-12** (~212s).
+
+Answer-correctness tests re-derive the expected product from the candidate set the agent
+returned (`cards`) rather than pinning a literal name, so growing the catalogue cannot
+silently invalidate them — a frozen name made the suite fail the moment a genuinely cheaper
+in-stock option existed, which was the search working correctly.
 
 ## Models / APIs used
 - Planner/grounding assist: (declare here, e.g. `none/keyless-first` or `model: <name>`). No LLM in hot replay loop.

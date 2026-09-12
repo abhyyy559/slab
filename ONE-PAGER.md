@@ -14,12 +14,22 @@ We ran webcmd learn once; the adapters in `adapters/` are what came out, and eve
 Headline: **recovery cost** — extra steps + heal time per perturbation, averaged across the run. Wall-clock learn→replay: 6182→3587ms (~42%; tokens unexposed by webcmd, no 90% claim — their measurement, not ours). Plus: live 3/3, offline ≥9/10, detect <500ms, heal <3s, extra steps ≤2, citation precision 1.0, transfer pass-or-honest-ABSTAIN. No learning-curve claim until the loop exists.
 Latest enquiry run under composite chaos (2026-09-12): **pass**, extra 2, detect 25ms, heal 242ms, **3 extractive evidence rows** ending in `Enquiry received for Pixel Lite 8GB. Reference SS-734303.`
 
+## The search space is real
+Site A carries a 24-phone catalogue (brands, Rs 8,499–49,999, 4–16GB RAM, two out-of-stock
+listings). The cheapest 8GB listing is **deliberately out of stock**: a naive `min(price)`
+agent picks it and reports a confident pass on a product nobody can buy. We filter on
+availability and choose the cheapest **in-stock** eligible match — "cheapest in-stock" is
+enforced, not decorative. Site B then decides per-product, so the handoff stays a loop:
+unserved at the hub, served-but-too-slow, or within the 3-day promise.
+
 ## Design for the judges' test matrix
 - **Detect** — `detector.scan()` compares each step's precondition to live state (modal, extra step, rename, move, error page); `settle()` + `wait_for_post()` absorb slow loads instead of racing them.
 - **Recover** — ladder: re-plan (dismiss overlays) → re-locate (ARIA role + label + synonym table) → backtrack → verify. Never proceeds on an unverified postcondition.
 - **Log** — per-run readable transcript `logs/runs/<run_id>.md`: every step, every detected change, every recovery, every pause, with timestamps. Plus JSONL for machines.
 - **Show** — live overlay colours the page: cyan ground, amber change, green heal, red abstain.
+- **Explain** — the dashboard's goal interpreter dry-runs your typed goal through the real planner *before* the run: which workflow, which steps, which params, and an explicit refusal for domains we do not cover. The routing is shown, not inferred.
 - **Pause** — `--pause-on-low` stops for a human instead of guessing below τ=0.70; all irreversible actions sit behind the approval gate.
+- **One window** — headed runs open a single foreground window that closes itself, so the demo never hijacks the desktop.
 
 ## Limitations
 See FAILURES.md. Headline: open-domain transfer not supported (command store is site-specific). Same-family only. No CAPTCHA/login/payments. 5+1 variants. Approval = visible browser modal before any submit.

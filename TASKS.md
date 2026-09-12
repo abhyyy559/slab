@@ -69,6 +69,16 @@ Audit of the codebase against every bullet of the official brief, then gap-closi
 - [x] **Responsible design** — approval gate (browser modal, CLI fallback) before every irreversible action; enquiry write gated; no CAPTCHA/login/payments; extractive evidence only.
 - [x] Tests: **87 green** (53 unit + 34 live), incl. 12 new enquiry tests across 8 answer-preserving perturbations. Verified live: pass, extra 2, detect 25ms, heal 242ms, 3 evidence rows, `SS-734303`.
 
+## UX / robustness pass (2026-09-12, second round)
+- [x] **`run.cmd` launcher**: `python` is often not on PATH on Windows and PowerShell does not support bash `\` line continuation — both were blocking commands. The wrapper finds a Python with playwright+flask and forwards args unchanged (`start` / `dash` / `run` / `test` / `py`). NOTE: `shift` does not update `%*` in cmd.exe, so the arg tail is rebuilt by hand.
+- [x] **Site A catalogue → 24 phones** (`mocks/site_a/search.html`): rendered client-side from a `CATALOG` block — brands, Rs 8,499–49,999, 4–16GB RAM, ratings, and **two out-of-stock listings**. The cheapest 8GB item (Lava Blaze, Rs 9,999) is OOS on purpose, so "cheapest in-stock" is a real constraint.
+- [x] **Stock is enforced, not decorative** (`agent/replayer.py`): extraction now reads an availability signal (explicit `data-stock`, else the visible stock line) and excludes OOS cards, logging `STOCK_FILTER`. A distinct `no_in_stock_match` ABSTAIN separates "nothing matches the filters" from "matches exist but none are available". Without this the agent reported a confident pass on a product nobody can buy.
+- [x] **Site B richer deliverability** (`mocks/site_b/check.html`): per-product outcomes — unserved at the hub, served-but-slow (5–7 days, outside the 3-day promise), and standard 2–3 day. The cross-site loop is exercised across three distinct cases instead of two.
+- [x] **Single window that closes itself** (`agent/browser.py`, `agent/replayer.py`): one page, raised once, never re-raised on a timer (that fights the operator), default `--keep-open` cut 6000→1500ms and the window closes on run end. Console defaults headed runs to 4000ms so the result is readable first.
+- [x] **Goal interpreter in the dashboard**: new `POST /api/plan` dry-runs the typed goal through the *real* planner, and a live panel shows the selected workflow, the step chain with site badges, parsed params, and explicit refusals — before the run, not inferred after.
+- [x] **Audit & docs explorer**: new `GET /api/docs` + `GET /api/docs/<name>` + `GET /api/rubric` render the repo docs and the scoring sheet live from disk with size/mtime. Allow-listed (any other path → 404; path traversal rejected), so it cannot expose anything else.
+- [x] **Tests: 93 → 109 green.** Added `test_console_api.py` (plan routing for all 3 cases, docs allow-list, traversal rejection) and catalogue-shape + in-stock-constraint guards in `test_mock_contracts.py` / `test_adaptive_live.py`. Answer tests now re-derive the expected pick from the returned candidate set instead of pinning a literal product name.
+
 ## Backlog
 - [ ] Medicine-finder swap: pharmacy + clinic mocks replace phone v0; re-verify v1 + v4 (the planner now refuses `medicine` goals with `unsupported_goal`, so lifting that refusal goes with this task)
 - [ ] README architecture diagram + ONE-PAGER metrics from real logs

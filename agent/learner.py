@@ -32,6 +32,6 @@ def learn_workflow(goal: str, base: str, budget: int = 20000,
     """Full learn pass for the cross-site workflow. Returns adapter rows for both sites."""
     a = learn_site_a(base, budget, ram)
     b = learn_site_b(base, pin)
-    return {"goal": goal, "site_a_rows": a, "site_b_rows": b,
+    return {"status": "learned", "goal": goal, "site_a_rows": a, "site_b_rows": b,
             "provenance": {"learned_by": "webcmd", "adapters": [ADAPTERS["site_a"], ADAPTERS["site_b"]]},
             "command_ref": "commands/phone_delivery_check.json"}

@@ -1,23 +1,34 @@
 # SENTRY run — v6/clean
 
-- **started:** 2026-09-12 14:38:53
-- **goal:** (none)
+- **started:** 2026-09-12 15:06:19
+- **goal:** Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days
 
 | t | ts | event | detail |
 |---|---|---|---|
-| 14:38:54 | +1789204134190 | · goto | seq=1 · step=1 · target=search_page · confidence=1.0 · signals=['selector'] · duration_ms=82 · result=ok · url=http://127.0.0.1:8000/site_a/search.html |
-| 14:38:54 | +1789204134191 | • step | ✓ step action: goto:search |
-| 14:38:54 | +1789204134191 | ⛓ hash | HASH seq=1 3ccb994ceed1... (goto:search) |
-| 14:38:54 | +1789204134574 | · ground | seq=1 · step=1 · target=search_box · confidence=0.9 · signals=['selector', 'visual'] · duration_ms=0 · result=ok |
-| 14:38:54 | +1789204134653 | · ground | seq=1 · step=2 · target=filter_button · confidence=1.0 · signals=['role_name', 'selector', 'text', 'visual'] · duration_ms=0 · result=ok |
-| 14:38:54 | +1789204134704 | · click | seq=2 · step=2 · target=filter_button · confidence=1.0 · signals=['role_name', 'selector', 'text', 'visual'] · duration_ms=49 · result=ok |
-| 14:38:54 | +1789204134705 | • step | ✓ step action: click:filter |
-| 14:38:54 | +1789204134706 | ⛓ hash | HASH seq=2 1da7e0021f67... (click:filter) |
-| 14:39:00 | +1789204140950 | · RECOVERY · event | trigger=postcondition_failed · expected=results_filtered · observed=0_visible_cards · detected_at_ms=1789204140902 · time_to_detect_ms=0 · strategy=re_locate · time_to_heal_ms=47 · verified=False · confidence_after=0.88 |
-| 14:39:00 | +1789204140951 | ⚠ recovery | ⚠ RECOVERY: postcondition_failed -> re_locate |
-| 14:39:00 | +1789204140952 | ✓ healed | ✓ HEALED in 47ms (verified=False) |
-| 14:39:01 | +1789204141006 | • step | ✓ step action: click:filter:retry |
-| 14:39:01 | +1789204141007 | ⛓ hash | HASH seq=3 1da7e0021f67... (click:filter:retry) |
-| 14:39:07 | +1789204147165 | · ABSTAIN | reason=no_results · constraint=max_price AND min_ram |
+| 15:06:21 | +1789205781076 | · goto | seq=1 · step=1 · target=search_page · confidence=1.0 · signals=['selector'] · duration_ms=103 · result=ok · url=http://127.0.0.1:8000/site_a/search.html |
+| 15:06:21 | +1789205781080 | • step | ✓ step action: goto:search |
+| 15:06:21 | +1789205781081 | ⛓ hash | HASH seq=1 7d2e46e86368... (goto:search) |
+| 15:06:21 | +1789205781481 | · ground | seq=1 · step=1 · target=search_box · confidence=0.9 · signals=['selector', 'visual'] · duration_ms=0 · result=ok |
+| 15:06:21 | +1789205781586 | · ground | seq=1 · step=2 · target=filter_button · confidence=1.0 · signals=['role_name', 'selector', 'text', 'visual'] · duration_ms=0 · result=ok |
+| 15:06:21 | +1789205781661 | · click | seq=2 · step=2 · target=filter_button · confidence=1.0 · signals=['role_name', 'selector', 'text', 'visual'] · duration_ms=71 · result=ok |
+| 15:06:21 | +1789205781666 | • step | ✓ step action: click:filter |
+| 15:06:21 | +1789205781668 | ⛓ hash | HASH seq=2 2a754d884f33... (click:filter) |
+| 15:06:21 | +1789205781682 | · STOCK_FILTER | excluded=1 · detail=out of stock, not eligible: ['Lava Blaze 8GB'] |
+| 15:06:21 | +1789205781697 | · extract | seq=2 · step=3 · target=cheapest · confidence=0.95 · signals=['selector', 'text'] · duration_ms=0 · result=ok:Redmi Note 8GB:12999 |
+| 15:06:21 | +1789205781759 | · goto | seq=3 · step=4 · target=delivery_page · confidence=1.0 · signals=['selector'] · duration_ms=57 · result=ok · url=http://127.0.0.1:8000/site_b/check.html?product=Redmi%20Note%208GB · candidate=Redmi Note 8GB · attempt=1 |
+| 15:06:21 | +1789205781762 | • step | ✓ step action: goto:delivery:Redmi Note 8GB |
+| 15:06:21 | +1789205781764 | ⛓ hash | HASH seq=3 217cda3bde74... (goto:delivery:Redmi Note 8GB) |
+| 15:06:22 | +1789205782163 | · ground | seq=3 · step=4 · target=check_button · confidence=1.0 · signals=['landmark', 'role_name', 'selector', 'text', 'visual'] · duration_ms=0 · result=ok |
+| 15:06:22 | +1789205782163 | · APPROVAL_REQUESTED | target=check_delivery_submit · url=http://127.0.0.1:8000/site_b/check.html?product=Redmi%20Note%208GB · payload={'pin': '500001'} · mode=cli |
+| 15:06:22 | +1789205782171 | · APPROVAL_GRANTED | target=check_delivery_submit · url=http://127.0.0.1:8000/site_b/check.html?product=Redmi%20Note%208GB · mode=cli |
+| 15:06:22 | +1789205782211 | · click | seq=4 · step=4 · target=check_button · confidence=1.0 · signals=['landmark', 'role_name', 'selector', 'text', 'visual'] · duration_ms=37 · result=ok · candidate=Redmi Note 8GB |
+| 15:06:22 | +1789205782219 | • step | ✓ step action: click:check |
+| 15:06:22 | +1789205782221 | ⛓ hash | HASH seq=4 9a4af1d23de2... (click:check) |
+| 15:06:22 | +1789205782642 | · delivery_verdict | seq=4 · step=4 · target=Redmi Note 8GB · confidence=1.0 · signals=['text'] · duration_ms=0 · result=deliverable=True |
+| 15:06:22 | +1789205782684 | 📊 metric | METRIC detect=0ms heal=0ms extra=0 status=pass |
 
-**finished:** 2026-09-12 14:39:07 — **end**
+**finished:** 2026-09-12 15:06:22 — **pass**
+
+Chosen: Redmi Note 8GB @ Rs 12999 · delivery: Delivery available to PIN 500001 in 2-3 days · extra steps 0 · recoveries 0
+
+**finished:** 2026-09-12 15:06:22 — **end**
