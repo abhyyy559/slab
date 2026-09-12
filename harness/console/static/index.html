@@ -204,6 +204,7 @@
       </div>
       <div class="grid2">
         <div><label class="f">variant label</label><input type="text" id="variant" value="1"></div>
+
         <div><label class="f">perturb</label>
           <select id="perturb">
             <option value="">none (clean)</option>
@@ -223,7 +224,13 @@
       <label class="toog"><input type="checkbox" id="headed" checked> visible browser window</label>
       <label class="toog"><input type="checkbox" id="approval_modal" checked> require approval modal before submit</label>
       <div class="rowchk">
-        <div><label class="f">slow-mo (ms)</label><input type="text" id="slowmo" placeholder="250" style="width:80px"></div>
+        <div><label class="f">speed (slow-mo ms)</label>
+          <select id="slowmo" style="width:170px">
+            <option value="">fast — no slow-mo</option>
+            <option value="200" selected>demo — 200ms pause</option>
+            <option value="800">slow — 800ms, follow along</option>
+          </select>
+        </div>
         <div><label class="f">keep window open (ms)</label><input type="text" id="keep_open" placeholder="6000" style="width:100px"></div>
       </div>
       <button class="primary wide" id="btn-run">▶ Run agent</button>
@@ -294,6 +301,12 @@ const PRESETS = {
   infeasible: {variant:"6", perturb:"",          budget:"8000", ram:"12",pin:"",       label:"Infeasible", sub:"8k @ 12GB → must ABSTAIN"},
   badpin:     {variant:"3", perturb:"",          budget:"",     ram:"",  pin:"500002", label:"Bad PIN", sub:"v3 · unserviceable → ABSTAIN"},
   tight:      {variant:"2", perturb:"",          budget:"25000",ram:"",  pin:"",       label:"Tight budget", sub:"v2 · 25k changes the pick"},
+  solo_shuffle:    {variant:"4", perturb:"shuffle",    budget:"", ram:"", pin:"", label:"Solo: shuffle", sub:"v4 · layout only"},
+  solo_rename:     {variant:"4", perturb:"rename",     budget:"", ram:"", pin:"", label:"Solo: rename", sub:"v4 · labels only"},
+  solo_modal:      {variant:"4", perturb:"modal",      budget:"", ram:"", pin:"", label:"Solo: modal", sub:"v4 · overlay only"},
+  solo_extra_step: {variant:"4", perturb:"extra_step", budget:"", ram:"", pin:"", label:"Solo: extra step", sub:"v4 · interstitial only"},
+  solo_throttle:   {variant:"4", perturb:"throttle",   budget:"", ram:"", pin:"", label:"Solo: throttle", sub:"v4 · slow net only"},
+  solo_composite:  {variant:"4", perturb:"composite",  budget:"", ram:"", pin:"", label:"Solo: composite", sub:"v4 · everything"},
 };
 const CHAOS = ["rename","strip","move","attrs","modal","extra_step","throttle","ab","swap","composite","chaos_max","reset"];
 
@@ -360,7 +373,7 @@ for (const c of CHAOS) {
   };
   $("#chaos").appendChild(b);
 }
-["#goal","#variant","#perturb","#budget","#ram","#pin","#headed","#approval_modal"]
+["#goal","#variant","#perturb","#budget","#ram","#pin","#headed","#approval_modal","#slowmo"]
   .forEach(s => $(s).addEventListener("input", hint));
 
 /* -------------------------------------------------------------------- start */
