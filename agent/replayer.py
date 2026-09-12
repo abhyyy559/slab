@@ -74,9 +74,27 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                 budget: int | None = None, ram: int | None = None,
                 pin: str | None = None) -> dict:
     from playwright.sync_api import sync_playwright
+    from .planner import plan_goal
     cmd = load_command(command_path)
+    workflow = cmd.get("workflow") or pathlib.Path(command_path).stem
+
+    # Precedence: explicit call arguments > parameters read from the goal > command defaults.
+    plan = plan_goal(goal, workflow)
+    log_action(event="PLAN", goal=goal, workflow=workflow, supported=plan.supported,
+               params=plan.params, unsupported=plan.unsupported, notes=plan.notes,
+               steps=[s.intent for s in plan.steps])
+    if not plan.supported:
+        reason = "; ".join(plan.unsupported)
+        log_action(event="ABSTAIN", reason="unsupported_goal", detail=reason)
+        return {"status": "ABSTAIN", "failed_constraint": "unsupported_goal", "reason": reason,
+                "constraints": check_constraints({"goal_maps_to_known_workflow": False}),
+                "plan": plan.to_dict(), "variant": variant, "perturb": perturb}
+
     params = dict(cmd.get("params", {}))
     params["base"] = base
+    for key in ("budget", "ram", "pin"):
+        if plan.params.get(key) is not None:
+            params[key] = str(plan.params[key])
     if budget is not None:
         params["budget"] = str(budget)
     if ram is not None:
@@ -145,7 +163,10 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
             eligible = [c for c in cards if c["price"] <= budget and c["ram"] >= ram]
             if not eligible:
                 log_action(event="ABSTAIN", reason="no_results", constraint="max_price AND min_ram")
-                return {"status": "ABSTAIN", "failed_constraint": "max_price AND min_ram", "cards": cards}
+                return {"status": "ABSTAIN", "failed_constraint": "max_price AND min_ram",
+                        "cards": cards, "plan": plan.to_dict(),
+                        "effective_params": {"budget": budget, "ram": ram, "pin": pin},
+                        "variant": variant, "perturb": perturb}
             cheapest = min(eligible, key=lambda c: c["price"])
             html_a = page.content()
             cand = [cheapest["text"].split("\n")[0], f"Rs {cheapest['price']}"]
@@ -207,6 +228,8 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
             out = {"status": "pass" if verdict["decision"] == "proceed" else "ABSTAIN",
                    "cheapest": cheapest, "delivery": status_text.strip(),
                    "evidence": evidences, "constraints": verdict,
+                   "plan": plan.to_dict(),
+                   "effective_params": {"budget": budget, "ram": ram, "pin": pin},
                    "extra_steps": total_extra,
                    "avg_time_to_heal_ms": (sum(heal) // len(heal)) if heal else 0,
                    "avg_time_to_detect_ms": (sum(dtct) // len(dtct)) if dtct else 0,

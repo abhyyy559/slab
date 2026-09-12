@@ -15,6 +15,7 @@ python -m venv .venv
 pip install -r requirements.txt
 playwright install chromium
 python mocks/serve.py --port 8000
+python harness/console/app.py --port 8765   # then open http://127.0.0.1:8765
 python -m agent run --goal "Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days" --variant 1
 ```
 
@@ -26,7 +27,7 @@ NL goal -> planner -> commands/*.json -> replayer -> executor (Playwright)
                           |-> evidence (extractive snippets) -> evidence.html (plain table, generated)
                           |-> constraints (pass/fail/unsat + ABSTAIN) -> approval gate (browser modal; CLI fallback)
                           |-> logger (actions/recoveries/hashes/metrics). learner/reflect: CUT from pitch (stubs).
-Judge console: harness/console (localhost:8765) injects shuffle/rename/modal/extra_step/throttle/composite.
+Judge console + dashboard: `harness/console` (localhost:8765) injects shuffle/rename/modal/extra_step/throttle/composite **and** runs the agent with a live step trace. Open http://127.0.0.1:8765 for scenario presets, parameter overrides, a headed/approval toggle, a step-by-step timeline tailed from `logs/*.jsonl`, and the result card. The agent runs as a subprocess (Playwright's sync API cannot run inside a Flask worker thread). The task box is parsed by `planner.plan_goal()` into budget / RAM / PIN and mapped to a workflow, logged as a `PLAN` event; explicit parameters override it, and unknown domains ABSTAIN with `unsupported_goal` rather than silently running the phone workflow. One workflow only — see FAILURES.md.
 Mocks: mocks/site_a (search/filter/results/product), mocks/site_b (PIN delivery check).
 ```
 
@@ -58,7 +59,7 @@ Definitions (say verbatim if probed): detect_ms = DOM mutation → next scan (po
 | Baseline uses stable `data-testid`; perturbed run strips them | say so on stage | policy |
 
 ## Credibility test
-Mocks are the benchmark; one run against real public HTML we did not write (books.toscrape.com or quotes.toscrape.com) is the credibility test.
+Mocks are the benchmark; one run against real public HTML we did not write (books.toscrape.com or quotes.toscrape.com) is the credibility test. **Done 2026-09-12: v5 PASS** — cheapest in-stock book under £20 on unseen DOM, evidence in `logs/transfer.json`.
 
 ## Safety
 No CAPTCHA solving, no login bypass, no real credentials/payments. Respects robots/ToS/rate limits. Human approval gate before irreversible actions — **browser modal** ("SENTRY wants to submit. Approve?"), teammate clicks on stage; CLI y/N is fallback only.

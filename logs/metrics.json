@@ -312,6 +312,222 @@
       "steps": 4,
       "extra_steps": 2,
       "heal_ms": 199
+    },
+    {
+      "trial": 35,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 36,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 215
+    },
+    {
+      "trial": 37,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 38,
+      "variant": 2,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 39,
+      "variant": 3,
+      "perturb": null,
+      "success": false,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 40,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 188
+    },
+    {
+      "trial": 41,
+      "variant": 2,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 42,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 43,
+      "variant": 2,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 44,
+      "variant": 3,
+      "perturb": null,
+      "success": false,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 45,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 188
+    },
+    {
+      "trial": 46,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 47,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 48,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 49,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 50,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 51,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 52,
+      "variant": 2,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 53,
+      "variant": 3,
+      "perturb": null,
+      "success": false,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 54,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 195
+    },
+    {
+      "trial": 55,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 56,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 194
+    },
+    {
+      "trial": 57,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 58,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 213
     }
   ],
   "clock_delta": {

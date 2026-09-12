@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SENTRY — control & trace</title>
+<style>
+  :root {
+    --bg:#0a1020; --panel:#111a2e; --panel2:#0e1729; --line:#1f2b45; --ink:#e6edf7;
+    --muted:#8b9ab5; --dim:#5c6b8a;
+    --blue:#60a5fa; --green:#34d399; --amber:#fbbf24; --red:#f87171; --purple:#a78bfa; --cyan:#22d3ee;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif; }
+  code, .mono { font-family:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace; }
+
+  header { position:sticky; top:0; z-index:20; background:linear-gradient(180deg,#0d1628,#0b1324);
+           border-bottom:1px solid var(--line); padding:12px 20px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .brand { font-weight:800; letter-spacing:2px; font-size:16px; }
+  .brand span { color:var(--blue); }
+  .tag { color:var(--muted); font-size:12px; }
+  .pills { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+  .pill { font-size:12px; border:1px solid var(--line); background:var(--panel2); border-radius:20px; padding:4px 12px; color:var(--muted); }
+  .pill b { color:var(--ink); font-weight:600; }
+  .pill.ok b { color:var(--green); } .pill.bad b { color:var(--red); }
+  .pill.run b { color:var(--amber); }
+  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--green); margin-right:6px; }
+  .dot.off { background:var(--red); }
+
+  main { display:grid; grid-template-columns:390px minmax(0,1fr); gap:16px; padding:16px 20px 40px; align-items:start; }
+  @media (max-width:1080px){ main { grid-template-columns:1fr; } }
+
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  .panel h2 { margin:0 0 4px; font-size:13px; text-transform:uppercase; letter-spacing:1.3px; color:var(--muted); }
+  .panel .sub { color:var(--dim); font-size:12px; margin:0 0 14px; }
+  .stack { display:flex; flex-direction:column; gap:16px; }
+
+  label.f { display:block; font-size:12px; color:var(--muted); font-weight:600; margin:12px 0 5px; }
+  input[type=text], textarea, select {
+    width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--ink);
+    border-radius:9px; padding:9px 11px; font-size:13px; font-family:inherit; outline:none;
+  }
+  input[type=text]:focus, textarea:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(96,165,250,.14); }
+  textarea { resize:vertical; min-height:62px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+
+  .note { font-size:11.5px; color:var(--amber); background:rgba(251,191,36,.07); border:1px solid rgba(251,191,36,.25);
+          border-radius:9px; padding:9px 11px; margin-top:10px; line-height:1.5; }
+  .note.grey { color:var(--muted); background:rgba(139,154,181,.06); border-color:var(--line); }
+
+  button { font-family:inherit; cursor:pointer; border-radius:9px; border:1px solid var(--line);
+           background:var(--panel2); color:var(--ink); padding:9px 13px; font-size:13px; font-weight:600; }
+  button:hover:not(:disabled) { border-color:var(--blue); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  button.primary { background:linear-gradient(135deg,#2563eb,#1d4ed8); border-color:#2563eb; color:#fff; }
+  button.primary:hover:not(:disabled) { background:linear-gradient(135deg,#3b82f6,#2563eb); }
+  button.sm { font-size:12px; padding:6px 10px; font-weight:500; }
+  button.ghost { background:transparent; }
+  button.wide { width:100%; margin-top:14px; padding:12px; font-size:14px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  .presets { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .presets button { text-align:left; font-weight:500; font-size:12.5px; padding:10px; line-height:1.35; }
+  .presets button small { display:block; color:var(--dim); font-weight:400; margin-top:3px; font-size:11px; }
+  .presets button.sel { border-color:var(--blue); background:rgba(96,165,250,.12); }
+  .toog { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); margin:10px 0; }
+  .toog input { accent-color:var(--blue); }
+
+  .chaos { display:flex; gap:6px; flex-wrap:wrap; }
+  .chaos button { font-size:12px; padding:7px 10px; }
+  .chaos button.on { border-color:var(--amber); color:var(--amber); background:rgba(251,191,36,.1); }
+
+  /* trace */
+  .jobbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  .jobbar .id { font-size:12px; color:var(--dim); }
+  .metric { background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:8px 12px; text-align:center; min-width:92px; }
+  .metric b { display:block; font-size:17px; }
+  .metric span { font-size:11px; color:var(--muted); }
+  .metric.good b { color:var(--green); } .metric.warn b { color:var(--amber); }
+
+  #timeline { max-height:60vh; overflow:auto; border:1px solid var(--line); border-radius:12px; background:var(--panel2); }
+  #timeline:empty::before { content:"Run a scenario — the agent's grounded steps, recoveries, hash chain and approvals stream in here live."; display:block; padding:22px; color:var(--dim); font-size:12.5px; }
+  .ev { display:flex; gap:11px; padding:9px 13px; border-bottom:1px solid rgba(31,43,69,.65); font-size:13px; }
+  .ev:last-child { border-bottom:none; }
+  .ev .ic { width:20px; text-align:center; flex-shrink:0; }
+  .ev .bd { min-width:0; flex:1; }
+  .ev .hd { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; }
+  .ev .t { color:var(--dim); font-size:11px; margin-left:auto; white-space:nowrap; }
+  .ev .d { color:var(--muted); font-size:12px; margin-top:3px; word-break:break-word; }
+  .ev.step .name { font-weight:600; }
+  .ev.step .conf { color:var(--cyan); }
+  .ev.rec { background:rgba(167,139,250,.07); }
+  .ev.rec .name { color:var(--purple); font-weight:600; }
+  .ev.hash { background:rgba(34,211,238,.05); }
+  .ev.hash .name { color:var(--cyan); }
+  .ev.ver { background:rgba(52,211,153,.06); }
+  .ev.ver .name { color:var(--green); font-weight:600; }
+  .ev.appr { background:rgba(251,191,36,.06); }
+  .ev.appr .name { color:var(--amber); font-weight:600; }
+  .ev.abst { background:rgba(248,113,113,.07); }
+  .ev.abst .name { color:var(--red); font-weight:600; }
+  .ev.err { background:rgba(248,113,113,.09); }
+  .ev.err .name { color:var(--red); font-weight:600; }
+  .sig { display:inline-block; font-size:10.5px; border:1px solid var(--line); border-radius:20px; padding:1px 7px; color:var(--muted); margin-right:4px; }
+  .bar { height:4px; background:rgba(139,154,181,.2); border-radius:3px; width:110px; display:inline-block; vertical-align:middle; margin-left:6px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--cyan); }
+  .bar.low i { background:var(--amber); }
+  .ok-chip { color:var(--green); } .bad-chip { color:var(--red); } .warn-chip { color:var(--amber); }
+
+  details.raw { margin-top:12px; }
+  details.raw summary { cursor:pointer; color:var(--muted); font-size:12.5px; }
+  pre.raw { background:#060b16; border:1px solid var(--line); border-radius:10px; padding:12px; overflow:auto;
+            max-height:280px; font-size:11.5px; color:#9fb3d1; margin:10px 0 0; }
+
+  /* result */
+  #result:empty::before { content:"Result card appears when the run finishes: status, chosen product, both evidence rows with char offsets + sha256, and recovery cost."; display:block; color:var(--dim); font-size:12.5px; }
+  .rcards { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:14px; }
+  .rc { background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:12px 14px; }
+  .rc span { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; }
+  .rc b { display:block; font-size:17px; margin-top:4px; }
+  .rc small { color:var(--dim); font-size:11.5px; }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.7px; }
+  td.mono { font-size:11.5px; color:#9fb3d1; word-break:break-all; }
+  .verdict { font-size:15px; font-weight:700; padding:10px 14px; border-radius:10px; display:inline-block; margin-bottom:12px; }
+  .verdict.pass { color:var(--green); background:rgba(52,211,153,.1); border:1px solid rgba(52,211,153,.3); }
+  .verdict.abstain { color:var(--amber); background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.3); }
+  .verdict.fail { color:var(--red); background:rgba(248,113,113,.1); border:1px solid rgba(248,113,113,.3); }
+  .hint { font-size:11.5px; color:var(--dim); margin-top:10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">SENTRY <span>·</span> CONTROL &amp; TRACE</div>
+  <div class="tag">recovery layer · bench: cheapest deliverable across two sites</div>
+  <div class="pills">
+    <div class="pill" id="p-mocks"><span class="dot" id="d-mocks"></span>mocks <b>:8000</b></div>
+    <div class="pill" id="p-chaos">chaos <b id="b-chaos">none</b></div>
+    <div class="pill" id="p-job">job <b id="b-job">idle</b></div>
+  </div>
+</header>
+
+<main>
+  <!-- ------------------------------------------------------------------ controls -->
+  <div class="stack">
+    <section class="panel">
+      <h2>Task</h2>
+      <p class="sub">What you want the agent to do.</p>
+      <textarea id="goal" spellcheck="false">Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days</textarea>
+      <div class="note grey">
+        <b>How the goal is used:</b> it is parsed for budget / RAM / PIN and mapped to a workflow
+        (<code>plan_goal</code>), then logged as a <code>PLAN</code> event you can read in the trace.
+        Explicit parameters below <b>override</b> anything read from the goal.<br>
+        Domains we have no mocks for (medicine, travel, groceries) are <b>refused</b> with an explicit
+        <code>unsupported_goal</code> ABSTAIN instead of silently running the phone workflow.
+        Open-domain transfer is still a published limitation — see <code>FAILURES.md</code>.
+      </div>
+      <div class="note grey">
+        <b>Workflow:</b> <code>phone_delivery_check</code> (v1) · Site A VoltKart → Site B SwiftShip<br>
+        <b>Try:</b> <code>cheapest phone under Rs 8000 with at least 12GB RAM</code> ·
+        <code>cheapest mobile under 25000 to pin 500001</code> · <code>cheapest medicine under Rs 500</code>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Scenarios</h2>
+      <p class="sub">Presets set variant + parameter overrides for real.</p>
+      <div class="presets" id="presets"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Parameters</h2>
+      <p class="sub">Blank = use the command file's defaults (20000 / 8 / 500001).</p>
+      <div class="grid3">
+        <div><label class="f">budget (Rs)</label><input type="text" id="budget" placeholder="20000"></div>
+        <div><label class="f">min RAM (GB)</label><input type="text" id="ram" placeholder="8"></div>
+        <div><label class="f">PIN</label><input type="text" id="pin" placeholder="500001"></div>
+      </div>
+      <div class="grid2">
+        <div><label class="f">variant label</label><input type="text" id="variant" value="1"></div>
+        <div><label class="f">perturb</label>
+          <select id="perturb">
+            <option value="">none (clean)</option>
+            <option value="shuffle">shuffle</option>
+            <option value="rename">rename</option>
+            <option value="modal">modal</option>
+            <option value="extra_step">extra_step</option>
+            <option value="throttle">throttle</option>
+            <option value="composite">composite</option>
+          </select></div>
+      </div>
+      <label class="toog"><input type="checkbox" id="headed" checked> visible browser window</label>
+      <label class="toog"><input type="checkbox" id="approval_modal" checked> require approval modal before submit</label>
+      <button class="primary wide" id="btn-run">▶ Run agent</button>
+      <div class="hint" id="argv-hint"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Regression &amp; learning</h2>
+      <p class="sub">Guard = 5 variants. Bump = propose a lesson, accept only if the guard stays green.</p>
+      <button class="wide" id="btn-guard" style="margin-top:4px">Run full guard (5 variants)</button>
+      <div class="row" style="margin-top:8px">
+        <button class="sm" id="btn-bump-good">propose bump · good</button>
+        <button class="sm" id="btn-bump-bad">propose bump · bad</button>
+        <button class="sm" id="btn-rollback">rollback → v1</button>
+      </div>
+      <div class="note grey">Bump/guard use auto-approval internally, so no modal interrupts them.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Live chaos</h2>
+      <p class="sub">The mock pages poll <code>/status</code> every 600ms. Inject while a run is going.</p>
+      <div class="chaos" id="chaos"></div>
+      <div class="note grey">For a fully deterministic run use the <code>composite</code> perturb preset above instead.</div>
+      <div class="row" style="margin-top:12px">
+        <button class="sm ghost" onclick="window.open('http://127.0.0.1:8000/site_a/search.html','_blank')">open Site A</button>
+        <button class="sm ghost" onclick="window.open('http://127.0.0.1:8000/site_b/check.html','_blank')">open Site B</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- --------------------------------------------------------------------- trace -->
+  <div class="stack">
+    <section class="panel">
+      <h2>Live trace</h2>
+      <p class="sub">Streamed from <code>logs/*.jsonl</code> + stdout. Times are ms since the job started.</p>
+      <div class="jobbar" id="jobbar"></div>
+      <div id="timeline"></div>
+      <details class="raw"><summary>raw stdout</summary><pre class="raw" id="raw">—</pre></details>
+    </section>
+
+    <section class="panel">
+      <h2>Result</h2>
+      <p class="sub">Final payload. Evidence rows are extractive: verbatim snippet + char offset + sha256.</p>
+      <div id="result"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Run history</h2>
+      <p class="sub">Persisted to <code>logs/dashboard-runs.jsonl</code>. Click a row to reload its result card.</p>
+      <div id="costbar" class="hint"></div>
+      <div id="history"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ms = v => (v === null || v === undefined) ? "—" : v + " ms";
+
+const PRESETS = {
+  clean:      {variant:"1", perturb:"",          budget:"",     ram:"",  pin:"",       label:"Clean run", sub:"v1 · default params"},
+  chaos:      {variant:"4", perturb:"composite", budget:"",     ram:"",  pin:"",       label:"Composite chaos", sub:"v4 · all 6 perturbations"},
+  infeasible: {variant:"6", perturb:"",          budget:"8000", ram:"12",pin:"",       label:"Infeasible", sub:"8k @ 12GB → must ABSTAIN"},
+  badpin:     {variant:"3", perturb:"",          budget:"",     ram:"",  pin:"500002", label:"Bad PIN", sub:"v3 · unserviceable → ABSTAIN"},
+  tight:      {variant:"2", perturb:"",          budget:"25000",ram:"",  pin:"",       label:"Tight budget", sub:"v2 · 25k changes the pick"},
+};
+const CHAOS = ["shuffle","rename","modal","extra_step","throttle","composite","reset"];
+
+let es = null, jobId = null, t0 = null, running = false;
+
+/* ---------------------------------------------------------------- controls */
+function applyPreset(name) {
+  const p = PRESETS[name];
+  $("#variant").value = p.variant;
+  $("#perturb").value = p.perturb;
+  $("#budget").value = p.budget;
+  $("#ram").value = p.ram;
+  $("#pin").value = p.pin;
+  document.querySelectorAll("#presets button").forEach(b => b.classList.toggle("sel", b.dataset.k === name));
+  hint();
+}
+function params() {
+  return {
+    goal: $("#goal").value.trim(),
+    variant: parseInt($("#variant").value || "1", 10) || 1,
+    perturb: $("#perturb").value,
+    budget: $("#budget").value.trim() === "" ? null : parseInt($("#budget").value, 10),
+    ram: $("#ram").value.trim() === "" ? null : parseInt($("#ram").value, 10),
+    pin: $("#pin").value.trim() || null,
+    headed: $("#headed").checked,
+    approval_modal: $("#approval_modal").checked,
+  };
+}
+function hint() {
+  const p = params(), bits = ["--variant " + p.variant];
+  if (p.perturb) bits.push("--perturb " + p.perturb);
+  if (p.budget !== null) bits.push("--budget " + p.budget);
+  if (p.ram !== null) bits.push("--ram " + p.ram);
+  if (p.pin) bits.push("--pin " + p.pin);
+  if (p.headed) bits.push("--headed");
+  if (p.approval_modal) bits.push("--no-yes");
+  $("#argv-hint").textContent = "python -m agent run " + bits.join(" ");
+}
+
+for (const [k, p] of Object.entries(PRESETS)) {
+  const b = document.createElement("button");
+  b.dataset.k = k;
+  b.innerHTML = esc(p.label) + "<small>" + esc(p.sub) + "</small>";
+  b.onclick = () => applyPreset(k);
+  $("#presets").appendChild(b);
+}
+for (const c of CHAOS) {
+  const b = document.createElement("button");
+  b.textContent = c;
+  b.dataset.c = c;
+  b.onclick = async () => {
+    // single round trip: the POST itself returns the full state, so the badge cannot
+    // go stale waiting on a second request.
+    try {
+      const s = await (await fetch("/perturb/" + c, { method: "POST" })).json();
+      paintState(s.active);
+    } catch (e) {
+      paintState(c === "reset" ? null : c);   // optimistic; the 2.5s poll corrects it
+    }
+  };
+  $("#chaos").appendChild(b);
+}
+["#goal","#variant","#perturb","#budget","#ram","#pin","#headed","#approval_modal"]
+  .forEach(s => $(s).addEventListener("input", hint));
+
+/* -------------------------------------------------------------------- start */
+async function start(action, extra = {}) {
+  if (running) return;
+  const body = Object.assign({ action }, action === "run" ? params() : {}, extra);
+  const r = await fetch("/api/run", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+  });
+  const j = await r.json();
+  if (j.error) { alert(j.error); return; }
+  begin(j.id, j.argv);
+}
+
+function begin(id, argv) {
+  jobId = id; t0 = null; running = true;
+  $("#timeline").innerHTML = "";
+  $("#result").innerHTML = "";
+  $("#raw").textContent = "—";
+  setRunning(true);
+  traceLine({ cls: "step", icon: "▸", name: "started " + id, detail: (argv || []).join(" ") });
+
+  es = new EventSource("/api/run/" + id + "/stream");
+  es.onmessage = e => handle(JSON.parse(e.data));
+  es.onerror = () => { if (es) { es.close(); es = null; } finish(); };
+}
+
+function handle(m) {
+  if (m.kind === "meta") { t0 = m.ts; renderJobbar(m); return; }
+  if (m.kind === "stdout") return appendRaw(m.text);
+  if (m.kind === "trace") return renderTrace(m);
+  if (m.kind === "error") return traceLine({ cls: "err", icon: "✖", name: "error", detail: esc(m.text) });
+  if (m.kind === "result") return renderResult(m.result, m.status);
+  if (m.kind === "done") finish();
+}
+
+function finish() {
+  running = false;
+  setRunning(false);
+  if (es) { es.close(); es = null; }
+  refreshState();
+  refreshHistory();
+}
+
+function setRunning(on) {
+  ["#btn-run","#btn-guard","#btn-bump-good","#btn-bump-bad","#btn-rollback"]
+    .forEach(s => $(s).disabled = on);
+  $("#b-job").textContent = on ? "running" : "idle";
+  $("#p-job").classList.toggle("run", on);
+}
+
+function rel(ts) { return (t0 && ts) ? "+" + (ts - t0) + "ms" : ""; }
+
+/* ------------------------------------------------------------------- render */
+function traceLine(o) {
+  const el = document.createElement("div");
+  el.className = "ev " + (o.cls || "");
+  el.innerHTML = '<div class="ic">' + (o.icon || "·") + '</div><div class="bd">'
+    + '<div class="hd"><span class="name">' + (o.name || "") + '</span>'
+    + (o.chips || "") + '<span class="t">' + rel(o.ts) + '</span></div>'
+    + (o.detail ? '<div class="d">' + o.detail + '</div>' : "")
+    + '</div>';
+  const tl = $("#timeline");
+  tl.appendChild(el);
+  tl.scrollTop = tl.scrollHeight;
+  return el;
+}
+
+function confChip(c) {
+  if (c === null || c === undefined) return "";
+  const pct = Math.round(c * 100);
+  const low = c < 0.70;
+  return '<span class="' + (low ? "warn-chip" : "ok-chip") + '">conf ' + c.toFixed(2) + '</span>'
+       + '<span class="bar' + (low ? " low" : "") + '"><i style="width:' + Math.min(pct, 100) + '%"></i></span>';
+}
+
+function renderTrace(m) {
+  const ev = m.event || {}, f = m.file, ts = m.ts;
+  if (f === "recoveries.jsonl") {
+    const steps = (ev.steps || []).length ? (ev.steps || []).join(", ") : "none";
+    return traceLine({ cls: "rec", icon: "✚", name: "RECOVERY · " + esc(ev.trigger), ts,
+      detail: 'expected <code>' + esc(ev.expected) + '</code> · observed <code>' + esc(ev.observed) + '</code><br>'
+        + 'strategy <b>' + esc(ev.strategy) + '</b> · steps: ' + esc(steps)
+        + ' · detect ' + esc(ms(ev.time_to_detect_ms)) + ' · heal ' + esc(ms(ev.time_to_heal_ms))
+        + ' · verified ' + (ev.verified ? '<span class="ok-chip">yes</span>' : '<span class="bad-chip">no</span>')
+        + (ev.confidence_after != null ? ' · conf after ' + esc(ev.confidence_after) : "") });
+  }
+  if (f === "replay-hashes.jsonl") {
+    return traceLine({ cls: "hash", icon: "⛓", name: "HASH seq=" + esc(ev.seq), ts,
+      detail: '<code>' + esc((ev.after || "").slice(0, 16)) + '…</code> '
+        + '<span style="color:#5c6b8a">action ' + esc((ev.action_hash || "").slice(0, 12)) + '…</span>' });
+  }
+  if (f === "versions.jsonl") {
+    const glyph = { PROPOSED: "?", ACCEPTED: "✓", REJECTED: "✖", ROLLED_BACK: "↩", BASELINE: "◉" }[ev.event] || "⟳";
+    const cls = ev.event === "ACCEPTED" ? "ver" : ev.event === "REJECTED" ? "abst" : "ver";
+    let detail = "";
+    if (ev.mode) detail += "mode " + esc(ev.mode) + " · ";
+    if (ev.reason) detail += "reason: " + esc(ev.reason) + " · ";
+    if (ev.guard) detail += "guard: " + esc(Object.entries(ev.guard).map(([k, v]) => k + (v.ok ? "✓" : "✗")).join(" "));
+    if (ev.reflected_from) detail += " · reflected_from " + esc(ev.reflected_from);
+    return traceLine({ cls, icon: glyph, name: esc(ev.event) + " v" + esc(ev.from_version ?? "") + "→v" + esc(ev.to_version ?? ""), ts, detail });
+  }
+  // actions.jsonl
+  if (ev.event === "PLAN") {
+    const ok = ev.supported !== false;
+    const ps = Object.entries(ev.params || {}).map(([k, v]) => k + "=" + v).join(", ") || "command defaults";
+    const head = ok ? "params <b>" + esc(ps) + "</b>" : "<b>refused:</b> " + esc((ev.unsupported || []).join("; "));
+    return traceLine({ cls: ok ? "step" : "abst", icon: "⌘", ts,
+      name: "PLAN · " + esc(ev.workflow) + (ok ? "" : " · unsupported"),
+      detail: head + "<br>steps: " + esc((ev.steps || []).join(" → "))
+        + ((ev.notes || []).length ? '<br><span style="color:#5c6b8a">' + esc(ev.notes.join(" · ")) + "</span>" : "") });
+  }
+  if (ev.event === "GOAL_INTENT") {
+    return traceLine({ cls: "appr", icon: "◎", name: "GOAL_INTENT", ts,
+      detail: esc(ev.goal) + ' <span class="warn-chip">raw goal as submitted — see the PLAN event next</span>' });
+  }
+  if (ev.event === "PERTURB_INJECTED") {
+    return traceLine({ cls: "appr", icon: "⚡", name: "PERTURB_INJECTED · " + esc(ev.type), ts, detail: "source: " + esc(ev.source || "run") });
+  }
+  if (ev.event && ev.event.startsWith("APPROVAL")) {
+    const ok = ev.event === "APPROVAL_GRANTED";
+    return traceLine({ cls: "appr", icon: ok ? "✓" : "✋", name: esc(ev.event), ts,
+      detail: 'action <b>' + esc(ev.target) + '</b>' + (ev.mode ? ' · mode ' + esc(ev.mode) : "")
+        + (ev.payload ? ' · payload <code>' + esc(ev.payload) + '</code>' : "")
+        + (ev.event === "APPROVAL_REQUESTED" ? ' <span class="warn-chip">waiting for a human click</span>' : "") });
+  }
+  if (ev.event === "ABSTAIN") {
+    return traceLine({ cls: "abst", icon: "⊘", name: "ABSTAIN", ts, detail: "reason " + esc(ev.reason) + (ev.constraint ? " · failed constraint <b>" + esc(ev.constraint) + "</b>" : "") });
+  }
+  if (ev.action) {
+    const sigs = (ev.signals || []).map(s => '<span class="sig">' + esc(s) + '</span>').join("");
+    const low = ev.result && String(ev.result).indexOf("LOW_CONFIDENCE") >= 0;
+    return traceLine({ cls: "step", icon: low ? "⚠" : "•", ts,
+      name: "seq " + esc(ev.seq) + " · step " + esc(ev.step) + " · " + esc(ev.action) + " " + esc(ev.target),
+      chips: confChip(ev.confidence),
+      detail: sigs + ' <span style="color:#5c6b8a">' + esc(ev.duration_ms ?? 0) + 'ms · '
+        + (low ? '<span class="warn-chip">' + esc(ev.result) + '</span>' : esc(ev.result)) + '</span>' });
+  }
+  return traceLine({ icon: "·", name: esc(ev.event || "event"), ts, detail: '<code>' + esc(JSON.stringify(ev).slice(0, 220)) + '</code>' });
+}
+
+function appendRaw(line) {
+  const pre = $("#raw");
+  pre.textContent = (pre.textContent === "—" ? "" : pre.textContent) + line + "\n";
+  pre.scrollTop = pre.scrollHeight;
+}
+
+function renderJobbar(m) {
+  $("#jobbar").innerHTML = '<div class="id mono">' + esc(m.job) + '</div>'
+    + '<div class="metric"><b>' + esc(m.action) + '</b><span>action</span></div>';
+}
+
+function kv(rows) {
+  return "<table><tbody>" + rows.map(r => "<tr><th>" + esc(r[0]) + "</th><td>" + r[1] + "</td></tr>").join("") + "</tbody></table>";
+}
+
+function renderResult(res, status) {
+  const box = $("#result");
+  if (!res) { box.innerHTML = '<div class="verdict fail">no JSON result parsed — see raw stdout</div>'; return; }
+
+  // guard result
+  if (res.overall !== undefined) {
+    const rows = Object.entries(res).filter(([k]) => k !== "overall" && k !== "transfer_v5");
+    box.innerHTML = '<div class="verdict ' + (res.overall ? "pass" : "fail") + '">guard ' + (res.overall ? "PASS" : "FAIL") + '</div>'
+      + "<table><thead><tr><th>variant</th><th>ok</th><th>detail</th></tr></thead><tbody>"
+      + rows.map(([k, v]) => "<tr><td>v" + esc(k) + "</td><td>" + (v.ok ? '<span class="ok-chip">ok</span>' : '<span class="bad-chip">fail</span>')
+          + '</td><td class="mono">' + esc(v.detail) + "</td></tr>").join("")
+      + (res.transfer_v5 ? '<tr><td>transfer v5</td><td><span class="warn-chip">skip</span></td><td class="mono">' + esc(res.transfer_v5.detail) + "</td></tr>" : "")
+      + "</tbody></table>";
+    return;
+  }
+
+  // bump / rollback verdicts
+  if (res.verdict) {
+    const v = res.verdict;
+    const cls = v === "ACCEPTED" || v === "ROLLED_BACK" ? "pass" : v === "REJECTED" ? "abstain" : "fail";
+    box.innerHTML = '<div class="verdict ' + cls + '">' + esc(v) + "</div>"
+      + kv([["reason", esc(res.reason || "—")],
+            ["version", "v" + esc(res.from_version ?? "?") + " → v" + esc(res.to_version ?? res.current_version ?? "?")]])
+      + (res.guard ? "<table><thead><tr><th>variant</th><th>ok</th></tr></thead><tbody>"
+          + Object.entries(res.guard).map(([k, r]) => "<tr><td>v" + esc(k) + "</td><td>"
+            + (r.ok ? '<span class="ok-chip">ok</span>' : '<span class="bad-chip">fail</span>')
+            + ' <span class="mono">' + esc(r.detail) + "</span></td></tr>").join("") + "</tbody></table>" : "");
+    return;
+  }
+
+  // agent run
+  const st = res.status || "unknown";
+  const cls = st === "pass" ? "pass" : st === "ABSTAIN" ? "abstain" : "fail";
+  const c = res.cheapest || {};
+  let html = '<div class="verdict ' + cls + '">' + esc(st) + "</div>";
+
+  if (res.reason) html += "<p class=\"hint\">" + esc(res.reason) + "</p>";
+
+  html += '<div class="rcards">';
+  if (c.name) html += '<div class="rc"><span>chosen</span><b>' + esc(c.name) + "</b><small>Rs " + esc(c.price) + " · " + esc(c.ram) + "GB</small></div>";
+  if (res.delivery) html += '<div class="rc"><span>site B says</span><b style="font-size:14px">' + esc(res.delivery) + "</b></div>";
+  html += '<div class="rc"><span>extra steps</span><b>' + esc(res.extra_steps ?? "—") + "</b><small>recovery cost</small></div>";
+  html += '<div class="rc"><span>detect / heal</span><b>' + esc(res.avg_time_to_detect_ms ?? 0) + " / " + esc(res.avg_time_to_heal_ms ?? 0) + "</b><small>ms avg</small></div>";
+  html += '<div class="rc"><span>elapsed</span><b>' + esc(res.elapsed_ms ?? "—") + "</b><small>ms total</small></div>";
+  html += "</div>";
+
+  if (res.constraints) {
+    html += "<table><thead><tr><th>constraint</th><th>state</th></tr></thead><tbody>"
+      + Object.entries(res.constraints.results || {}).map(([k, v]) =>
+          "<tr><td>" + esc(k) + "</td><td>" + (v === "pass" ? '<span class="ok-chip">pass</span>' : '<span class="bad-chip">' + esc(v) + "</span>") + "</td></tr>").join("")
+      + "<tr><th>decision</th><td><b>" + esc(res.constraints.decision) + "</b></td></tr></tbody></table>";
+  }
+  if (res.failed_constraint) html += '<p class="note">failed constraint: <b>' + esc(res.failed_constraint) + "</b></p>";
+
+  if (res.evidence && res.evidence.length) {
+    html += "<h2 style=\"margin-top:16px\">Evidence</h2><table><thead><tr><th>claim</th><th>snippet (verbatim)</th><th>offset</th><th>sha256</th></tr></thead><tbody>"
+      + res.evidence.map(e => "<tr><td>" + esc(e.claim) + '<div class="mono" style="font-size:11px;color:#5c6b8a">' + esc(e.url) + "</div></td>"
+          + "<td class=\"mono\">" + esc(e.snippet_verbatim) + "</td><td class=\"mono\">" + esc(e.char_offset) + "</td><td class=\"mono\">"
+          + esc(String(e.sha256).slice(0, 16)) + "…</td></tr>").join("") + "</tbody></table>";
+  }
+  box.innerHTML = html;
+}
+
+/* ------------------------------------------------------------------ history */
+async function refreshHistory() {
+  try {
+    const r = await (await fetch("/api/history")).json();
+    renderHistory(r.runs || []);
+  } catch (e) { /* history is optional */ }
+}
+
+function renderHistory(runs) {
+  const box = $("#history"), cost = $("#costbar");
+  if (!runs.length) { box.innerHTML = '<p class="hint">No runs recorded yet.</p>'; cost.textContent = ""; return; }
+
+  const withRec = runs.filter(r => r.heal_ms);
+  if (withRec.length) {
+    const hs = withRec.map(r => r.heal_ms).sort((a, b) => a - b);
+    const med = hs[Math.floor(hs.length / 2)];
+    cost.innerHTML = "<b>Recovery cost across " + withRec.length + " runs with recovery</b> — heal ms: min "
+      + hs[0] + " · median " + med + " · max " + hs[hs.length - 1]
+      + " &nbsp;|&nbsp; max extra steps " + Math.max.apply(null, withRec.map(r => r.extra_steps || 0));
+  } else { cost.textContent = "No run has needed recovery yet."; }
+
+  const maxHeal = Math.max.apply(null, runs.map(r => r.heal_ms || 0).concat([1]));
+  box.innerHTML = "<table><thead><tr><th>when</th><th>action</th><th>outcome</th><th>chose</th>"
+    + "<th>extra</th><th>detect</th><th>heal</th><th>recov</th></tr></thead><tbody>"
+    + runs.map(r => {
+        const t = new Date(r.started).toLocaleTimeString();
+        const st = r.result_status || r.verdict || r.status;
+        const cls = /pass|ACCEPTED|ROLLED_BACK|guard PASS/i.test(st || "") ? "ok-chip"
+                  : /ABSTAIN|REJECTED/i.test(st || "") ? "warn-chip" : "bad-chip";
+        const w = Math.round(((r.heal_ms || 0) / maxHeal) * 100);
+        return '<tr class="hrow" data-id="' + esc(r.id) + '" style="cursor:pointer">'
+          + "<td class=\"mono\">" + esc(t) + "</td><td>" + esc(r.action) + "</td>"
+          + '<td><span class="' + cls + '">' + esc(st) + "</span></td>"
+          + '<td class="mono">' + esc(r.chose || r.reason || "—") + "</td>"
+          + "<td>" + esc(r.extra_steps ?? "—") + "</td>"
+          + "<td>" + esc(r.detect_ms ?? "—") + "</td>"
+          + '<td><span class="bar"><i style="width:' + w + '%"></i></span> ' + esc(r.heal_ms ?? "—") + "</td>"
+          + "<td>" + esc(r.recoveries ?? 0) + "</td></tr>";
+      }).join("") + "</tbody></table>";
+
+  box.querySelectorAll(".hrow").forEach(row => row.onclick = async () => {
+    try {
+      const rec = await (await fetch("/api/history/" + row.dataset.id)).json();
+      if (rec && rec.result) {
+        renderResult(rec.result, rec.status);
+        $("#result").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    } catch (e) { /* ignore */ }
+  });
+}
+
+/* -------------------------------------------------------------------- state */
+function paintState(active) {
+  $("#b-chaos").textContent = active || "none";
+  document.querySelectorAll("#chaos button").forEach(b => b.classList.toggle("on", b.dataset.c === active));
+}
+
+async function refreshState() {
+  try {
+    const s = await (await fetch("/api/state")).json();
+    paintState(s.perturbation);
+    $("#d-mocks").className = "dot ok";
+    if (!running && s.job) $("#b-job").textContent = s.job.status;
+  } catch (e) {
+    $("#d-mocks").className = "dot off";
+  }
+}
+
+$("#btn-run").onclick = () => start("run");
+$("#btn-guard").onclick = () => start("guard");
+$("#btn-bump-good").onclick = () => start("bump", { mode: "good" });
+$("#btn-bump-bad").onclick = () => start("bump", { mode: "bad" });
+$("#btn-rollback").onclick = () => start("rollback", { to: 1 });
+
+applyPreset("clean");
+refreshState();
+refreshHistory();
+setInterval(refreshState, 2500);
+</script>
+</body>
+</html>

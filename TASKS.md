@@ -36,12 +36,16 @@
 - [x] Demo run for review: screenshots + log walkthrough (this session)
 - [x] Storefront restyle v2 (VoltKart + SwiftShip): contracts frozen, sticky chrome below chaos overlays, empty-state on zero matches; evidence snippet no longer the thumbnail emoji
 - [x] Re-verify after v2: full guard green (v1 pass/0, v2 pass/0, v3 ABSTAIN, v4 pass/2 extra, v6 ABSTAIN); last_run.json + evidence.html regenerated
+- [x] Judge console → **dashboard** (`harness/console`): task box, 5 scenario presets, param overrides, headed/approval toggles, live SSE trace tailed from `logs/*.jsonl`, result card with evidence, chaos injector. Runs the agent as a subprocess (Playwright sync API is not usable in a Flask thread). `/status` shape frozen; 22 endpoint checks + 7 chaos-click checks green.
+- [x] `demo.sh` one-command launcher: finds a Python with playwright+flask (Git Bash misses the Windows App Paths registry), starts both servers, Ctrl-C stops both. Shutdown escalates to `taskkill` because MSYS `kill` cannot reliably terminate native `python.exe` (leaked a server holding :8000 in testing).
+- [x] Goal now drives the plan: `planner.plan_goal()` extracts budget / RAM / PIN and routes to a workflow, logged as a `PLAN` event. Precedence: explicit flags > goal params > command defaults. Unknown domains (medicine / travel / groceries) return `ABSTAIN / unsupported_goal` instead of silently running the phone workflow. Guard re-verified green.
 
 ## Next — one by one, in order
 - [x] Infeasible variant (+1): budget 8000 + 12GB → ABSTAIN naming `max_price AND min_ram` (verified)
 - [x] Regression-guard + rollback: guard v1/v2/v3/v4/v6, good ACCEPTED v1→v2, bad REJECTED, rollback→v1 green; `logs/versions.jsonl` (verified). Re-run green after storefront restyle v2. Un-cutting "learning" from the pitch is still an owner call.
-- [ ] Medicine-finder swap: pharmacy + clinic mocks replace phone v0; re-verify v1 + v4
-- [ ] Credibility run: same-family real HTML (books.toscrape.com), pass or honest ABSTAIN
+- [x] Run history: summaries persisted to `logs/dashboard-runs.jsonl` (goal, outcome, extra steps, detect/heal, recoveries), `/api/history` + `/api/history/<id>`, dashboard panel with cross-run recovery-cost comparison; click a row to reload its result card.
+- [ ] Medicine-finder swap: pharmacy + clinic mocks replace phone v0; re-verify v1 + v4 (the planner now refuses `medicine` goals with `unsupported_goal`, so lifting that refusal goes with this task)
+- [x] Credibility run: same-family real HTML (books.toscrape.com), pass or honest ABSTAIN
 - [ ] README architecture diagram + ONE-PAGER metrics from real logs
 - [ ] Backup MP4 (≤3 min, real execution) + 5-min demo rehearsal ×2 laptops
 
@@ -52,7 +56,8 @@ python -m pip install -r requirements.txt
 python -m playwright install chromium
 # terminals (repo root)
 python mocks/serve.py --port 8000        # mocks
-python harness/console/app.py --port 8765 # judge console
+python harness/console/app.py --port 8765 # judge console + dashboard (open 127.0.0.1:8765)
+./demo.sh                                 # or: both servers, then opens the dashboard (Ctrl-C stops both)
 # runs
 python -m agent run --goal "Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days" --variant 1 --base http://127.0.0.1:8000
 python -m agent run --goal "..." --variant 4 --perturb composite --base http://127.0.0.1:8000
