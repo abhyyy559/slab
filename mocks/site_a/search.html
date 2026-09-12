@@ -1,34 +1,78 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><title>Site A — Phone Search</title></head>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoltKart — Phone Search</title>
+<style>
+  :root { --brand:#1a56db; --brand-dark:#1443ad; --bg:#f1f4f9; --card:#ffffff; --ink:#17233b; --muted:#667085; --ok:#067647; --okbg:#ecfdf3; --line:#e4e9f2; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif; background:var(--bg); color:var(--ink); }
+  header.top { background:linear-gradient(135deg,#1a56db,#0b2f87); color:#fff; padding:14px 28px; display:flex; align-items:center; gap:18px; position:sticky; top:0; z-index:10; }
+  .logo { font-weight:800; font-size:22px; letter-spacing:.5px; white-space:nowrap; }
+  .logo small { display:block; font-size:11px; font-weight:400; opacity:.85; letter-spacing:2px; }
+  .searchbar { display:flex; flex:1; max-width:640px; }
+  .searchbar input { flex:1; padding:11px 14px; border:none; border-radius:8px 0 0 8px; font-size:15px; }
+  .searchbar button { background:#ffb800; border:none; padding:0 26px; font-size:15px; font-weight:700; border-radius:0 8px 8px 0; cursor:pointer; color:#3a2a00; }
+  .searchbar button:hover { background:#f0ad00; }
+  .wrap { display:flex; gap:20px; max-width:1180px; margin:22px auto; padding:0 20px; align-items:flex-start; }
+  aside.filters { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; width:250px; flex-shrink:0; box-shadow:0 1px 3px rgba(16,24,40,.06); }
+  aside.filters h3 { margin:0 0 12px; font-size:15px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
+  aside.filters label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+  aside.filters input { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:8px; font-size:14px; }
+  aside.filters button { width:100%; margin-top:14px; background:var(--brand); color:#fff; border:none; padding:11px; font-size:14px; font-weight:700; border-radius:8px; cursor:pointer; }
+  aside.filters button:hover { background:var(--brand-dark); }
+  section[data-testid="results"] { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; flex:1; }
+  article[data-testid="product-card"] { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; box-shadow:0 1px 3px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:8px; }
+  article[data-testid="product-card"]:hover { box-shadow:0 6px 18px rgba(26,86,219,.15); }
+  .thumb { background:linear-gradient(135deg,#dbe7ff,#f3f6ff); border-radius:8px; height:110px; display:flex; align-items:center; justify-content:center; font-size:44px; }
+  article h2 { font-size:16px; margin:0; }
+  .specs { display:flex; gap:8px; align-items:center; }
+  .price { font-size:19px; font-weight:800; color:var(--brand-dark); }
+  .ram { font-size:12px; background:var(--okbg); color:var(--ok); border:1px solid #a6f4c5; padding:2px 8px; border-radius:20px; font-weight:700; white-space:nowrap; }
+  article a[data-testid="product-link"] { margin-top:auto; text-align:center; text-decoration:none; border:1px solid var(--brand); color:var(--brand); font-weight:700; padding:9px; border-radius:8px; font-size:14px; }
+  article a[data-testid="product-link"]:hover { background:var(--brand); color:#fff; }
+  footer { text-align:center; color:var(--muted); font-size:12px; padding:26px; }
+</style>
+</head>
 <body>
-<header><h1 data-testid="site-title">Site A Phones</h1></header>
-<main>
-  <input data-testid="search-box" aria-label="Search phones" placeholder="Search phones" value="phone" />
-  <button data-testid="search-button" role="button">Search</button>
-  <section aria-label="Filters">
-    <label>Max price (Rs) <input data-testid="max-price" value="20000" /></label>
-    <label>Min RAM (GB) <input data-testid="min-ram" value="8" /></label>
+<header class="top">
+  <div class="logo" data-testid="site-title">VoltKart<small>ELECTRONICS</small></div>
+  <div class="searchbar">
+    <input data-testid="search-box" aria-label="Search phones" placeholder="Search for phones, brands and more…" value="phone" />
+    <button data-testid="search-button" role="button">Search</button>
+  </div>
+</header>
+<div class="wrap">
+  <aside class="filters" aria-label="Filters">
+    <h3>Filters</h3>
+    <label for="fmax">Max price (Rs)</label>
+    <input id="fmax" data-testid="max-price" value="20000" />
+    <label for="fmin">Min RAM (GB)</label>
+    <input id="fmin" data-testid="min-ram" value="8" />
     <button data-testid="apply-filter" role="button">Apply Filter</button>
-  </section>
+  </aside>
   <section data-testid="results" aria-label="Results">
     <article data-testid="product-card" data-name="Nova X1 6GB" data-price="15999" data-ram="6">
-      <h2> triplet Nova X1 6GB — Rs 15,999</h2>
-      <span data-testid="price">Rs 15,999</span> <span data-testid="ram">6GB RAM</span>
-      <a data-testid="product-link" href="/site_a/product.html?name=Nova%20X1">View</a>
+      <div class="thumb" aria-hidden="true">📱</div>
+      <h2>Nova X1 6GB — Rs 15,999</h2>
+      <div class="specs"><span class="price" data-testid="price">Rs 15,999</span><span class="ram" data-testid="ram">6GB RAM</span></div>
+      <a data-testid="product-link" href="/site_a/product.html?name=Nova%20X1">View details</a>
     </article>
     <article data-testid="product-card" data-name="Pixel Lite 8GB" data-price="18999" data-ram="8">
+      <div class="thumb" aria-hidden="true">📱</div>
       <h2>Pixel Lite 8GB — Rs 18,999</h2>
-      <span data-testid="price">Rs 18,999</span> <span data-testid="ram">8GB RAM</span>
-      <a data-testid="product-link" href="/site_a/product.html?name=Pixel%20Lite">View</a>
+      <div class="specs"><span class="price" data-testid="price">Rs 18,999</span><span class="ram" data-testid="ram">8GB RAM</span></div>
+      <a data-testid="product-link" href="/site_a/product.html?name=Pixel%20Lite">View details</a>
     </article>
     <article data-testid="product-card" data-name="Galaxy Max 12GB" data-price="24999" data-ram="12">
+      <div class="thumb" aria-hidden="true">📱</div>
       <h2>Galaxy Max 12GB — Rs 24,999</h2>
-      <span data-testid="price">Rs 24,999</span> <span data-testid="ram">12GB RAM</span>
-      <a data-testid="product-link" href="/site_a/product.html?name=Galaxy%20Max">View</a>
+      <div class="specs"><span class="price" data-testid="price">Rs 24,999</span><span class="ram" data-testid="ram">12GB RAM</span></div>
+      <a data-testid="product-link" href="/site_a/product.html?name=Galaxy%20Max">View details</a>
     </article>
   </section>
-</main>
+</div>
+<footer>VoltKart demo storefront · prices include GST · free delivery over Rs 999</footer>
 <script>
 function applyFilters() {
   const max = parseInt(document.querySelector('[data-testid="max-price"]').value || "0", 10);

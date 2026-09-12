@@ -1,18 +1,54 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><title>Site B — Delivery Check</title></head>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SwiftShip — Delivery Check</title>
+<style>
+  :root { --brand:#0e7c5b; --brand-dark:#0a5c44; --bg:#eef5f1; --card:#fff; --ink:#16281f; --muted:#63756b; --line:#d9e6de; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif; background:var(--bg); color:var(--ink); min-height:100vh; display:flex; flex-direction:column; }
+  header.top { background:linear-gradient(135deg,#0e7c5b,#083f2e); color:#fff; padding:14px 28px; display:flex; align-items:center; gap:12px; }
+  .logo { font-weight:800; font-size:22px; } .logo small { display:block; font-size:11px; font-weight:400; opacity:.85; letter-spacing:2px; }
+  main { flex:1; display:flex; align-items:center; justify-content:center; padding:32px 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:34px; width:440px; max-width:100%; box-shadow:0 8px 30px rgba(8,63,46,.12); }
+  .card .truck { font-size:46px; }
+  h1 { font-size:22px; margin:8px 0 4px; }
+  p.sub { color:var(--muted); font-size:14px; margin:0 0 18px; }
+  label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+  .row { display:flex; gap:10px; }
+  .row input { flex:1; padding:12px; font-size:16px; letter-spacing:3px; border:1px solid var(--line); border-radius:10px; }
+  .row button { background:var(--brand); color:#fff; border:none; padding:0 22px; font-size:15px; font-weight:700; border-radius:10px; cursor:pointer; white-space:nowrap; }
+  .row button:hover { background:var(--brand-dark); }
+  #status, [data-testid="delivery-status"] { margin-top:18px; font-size:15px; font-weight:600; border-radius:10px; padding:14px; display:none; }
+  [data-testid="delivery-status"].show { display:block; background:#ecfdf3; border:1px solid #a6f4c5; color:#067647; }
+  [data-testid="delivery-status"].show.bad { background:#fef3f2; border-color:#fecdca; color:#b42318; }
+  footer { text-align:center; color:var(--muted); font-size:12px; padding:20px; }
+</style>
+</head>
 <body>
+<header class="top"><div class="logo" data-testid="delivery-title">SwiftShip<small>DELIVERY NETWORK</small></div></header>
 <main>
-  <h1 data-testid="delivery-title">Delivery Checker</h1>
-  <label>PIN code <input data-testid="pin-input" value="500001" /></label>
-  <button data-testid="check-button" role="button">Check Delivery</button>
-  <div data-testid="delivery-status" aria-live="polite"></div>
+  <div class="card">
+    <div class="truck" aria-hidden="true">🚚</div>
+    <h1>Check delivery</h1>
+    <p class="sub">Enter your PIN code to confirm 3-day delivery availability.</p>
+    <label for="pin">PIN code</label>
+    <div class="row">
+      <input id="pin" data-testid="pin-input" value="500001" maxlength="6" inputmode="numeric" />
+      <button data-testid="check-button" role="button">Check Delivery</button>
+    </div>
+    <div data-testid="delivery-status" aria-live="polite"></div>
+  </div>
 </main>
+<footer>SwiftShip demo portal · 19,000+ pincodes served · COD available</footer>
 <script>
 function runCheck() {
   const pin = document.querySelector('[data-testid="pin-input"]').value.trim();
   const el = document.querySelector('[data-testid="delivery-status"]');
-  el.textContent = (pin === "500001") ? "Delivery available to PIN 500001 in 2-3 days" : ("Delivery not available to PIN " + pin);
+  const ok = (pin === "500001");
+  el.textContent = ok ? "Delivery available to PIN 500001 in 2-3 days" : ("Delivery not available to PIN " + pin);
+  el.classList.add("show");
+  el.classList.toggle("bad", !ok);
 }
 document.querySelector('[data-testid="check-button"]').addEventListener('click', () => {
   const d = window.__chaosThrottleMs || 0;

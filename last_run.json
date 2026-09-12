@@ -4,23 +4,23 @@
     "name": "Pixel Lite 8GB",
     "price": 18999,
     "ram": 8,
-    "text": "Pixel Lite 8GB \u2014 Rs 18,999\nRs 18,999 8GB RAM View"
+    "text": "\ud83d\udcf1\nPixel Lite 8GB \u2014 Rs 18,999\nRs 18,999\n8GB RAM\nView details"
   },
   "delivery": "Delivery available to PIN 500001 in 2-3 days",
   "evidence": [
     {
       "claim": "Cheapest phone >= 8GB under Rs 20000 is Pixel Lite 8GB at Rs 18999",
       "url": "http://127.0.0.1:8000/site_a/search.html?perturb=composite",
-      "snippet_verbatim": "Pixel Lite 8GB \u2014 Rs 18,999",
-      "char_offset": 1224,
-      "sha256": "818b01aac4986bfeb254351f3329a9f6fbd6678768f5381f1350fb25ae12050e",
+      "snippet_verbatim": "\ud83d\udcf1",
+      "char_offset": 4499,
+      "sha256": "2566561f81db7a7c4adb6cee3e93139155a6b01d52ff0d3d5c11648f46bc79bb",
       "action_log_ref": 2
     },
     {
       "claim": "Site B confirms deliverable within 3 days to PIN 500001: Delivery available to PIN 500001 in 2-3 days",
       "url": "http://127.0.0.1:8000/site_b/check.html?perturb=composite",
       "snippet_verbatim": "Delivery available to PIN 500001 in 2-3 days",
-      "char_offset": 417,
+      "char_offset": 2828,
       "sha256": "507c97cd06f07d5305a7f0de41d7fddb61f35ea04179ef91bb3dd44102468ced",
       "action_log_ref": 4
     }
@@ -34,9 +34,9 @@
     "decision": "proceed"
   },
   "extra_steps": 2,
-  "avg_time_to_heal_ms": 157,
+  "avg_time_to_heal_ms": 191,
   "avg_time_to_detect_ms": 3,
-  "elapsed_ms": 6292,
+  "elapsed_ms": 6610,
   "variant": 4,
   "perturb": "composite"
 }
