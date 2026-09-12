@@ -5,7 +5,9 @@ def cmd_run(a):
     from .replayer import run_variant
     out = run_variant(variant=a.variant, base=a.base, goal=a.goal or "",
                       perturb=a.perturb, auto_approve=(not a.no_yes), headless=(not a.headed),
-                      budget=a.budget, ram=a.ram, pin=a.pin)
+                      budget=a.budget, ram=a.ram, pin=a.pin,
+                      slow_mo=a.slowmo, keep_open_ms=a.keep_open,
+                      raise_window=(not a.no_raise), channel=a.channel)
     print(json.dumps(out, indent=2))
     if out.get("status") == "pass":
         print("\nEVIDENCE TABLE")
@@ -24,7 +26,13 @@ def main():
     r.add_argument("--base", default="http://127.0.0.1:8000")
     r.add_argument("--perturb", default=None)
     r.add_argument("--no-yes", dest="no_yes", action="store_true", help="prompt for approval gate")
-    r.add_argument("--headed", action="store_true")
+    r.add_argument("--headed", action="store_true", help="open a real, focused browser window")
+    r.add_argument("--slowmo", type=int, default=None, help="ms delay between actions (headed default 250)")
+    r.add_argument("--keep-open", type=int, default=None, dest="keep_open",
+                   help="ms to hold the window on the result (headed default 6000)")
+    r.add_argument("--no-raise", action="store_true", dest="no_raise",
+                   help="do not force the window to the foreground")
+    r.add_argument("--channel", default=None, help="browser channel, e.g. chrome or msedge")
     r.add_argument("--budget", type=int, default=None, help="override command budget (infeasible demo: 8000)")
     r.add_argument("--ram", type=int, default=None, help="override command min RAM (infeasible demo: 12)")
     r.add_argument("--pin", default=None)

@@ -1,1 +1,1 @@
-{"run_id": "v1/clean", "step": "4/4", "status": "pass", "extra_steps": 0, "detect_ms": 0, "heal_ms": 0, "elapsed_ms": 2701, "ts": 1789201009355}
+{"run_id": "v2/clean", "step": "0/4", "status": "running", "extra_steps": 0, "detect_ms": 0, "heal_ms": 0, "elapsed_ms": 0, "ts": 1789202557005}

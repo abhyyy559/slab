@@ -46,7 +46,7 @@ except Exception as e:          # never let the dashboard die because of an impo
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
 STATE = {"active": None, "ts": None, "seed": 42,
-         "composite": ["shuffle", "rename", "modal", "extra_step", "throttle", "strip_testids"]}
+         "composite": ["rename", "strip", "move", "attrs", "modal", "extra_step", "throttle"]}
 
 JOBS: dict = {}
 _lock = threading.Lock()
@@ -88,6 +88,28 @@ def status():
     return jsonify(STATE)
 
 
+@app.get("/api/perturbations")
+def perturbations():
+    """The full catalogue, so the dashboard builds its injector from one source."""
+    try:
+        from harness.perturbations import PERTURBATIONS, CHAOS_TYPES
+        return jsonify({"types": CHAOS_TYPES, "catalogue": PERTURBATIONS})
+    except Exception as e:
+        return jsonify({"types": [], "error": f"{type(e).__name__}: {e}"})
+
+
+@app.post("/perturb/<string:typ>")
+def p_generic(typ):
+    """Generic injector: any catalogue type, so the UI never drifts from chaos.js."""
+    try:
+        from harness.perturbations import CHAOS_TYPES
+        if typ != "reset" and typ not in CHAOS_TYPES:
+            return jsonify({"error": f"unknown perturbation {typ!r}"}), 400
+    except Exception:
+        pass
+    return _set(None if typ == "reset" else typ)
+
+
 def _set(typ):
     STATE.update(active=typ, ts=_now_ms())
     try:
@@ -99,17 +121,29 @@ def _set(typ):
 
 
 @app.post("/perturb/shuffle")
-def p_shuffle(): return _set("shuffle")
+def p_shuffle(): return _set("move")
 @app.post("/perturb/rename")
 def p_rename(): return _set("rename")
+@app.post("/perturb/strip")
+def p_strip(): return _set("strip")
+@app.post("/perturb/move")
+def p_move(): return _set("move")
+@app.post("/perturb/attrs")
+def p_attrs(): return _set("attrs")
 @app.post("/perturb/modal")
 def p_modal(): return _set("modal")
 @app.post("/perturb/extra_step")
 def p_extra(): return _set("extra_step")
 @app.post("/perturb/throttle")
 def p_throttle(): return _set("throttle")
+@app.post("/perturb/ab")
+def p_ab(): return _set("ab")
+@app.post("/perturb/swap")
+def p_swap(): return _set("swap")
 @app.post("/perturb/composite")
 def p_comp(): return _set("composite")
+@app.post("/perturb/chaos_max")
+def p_max(): return _set("chaos_max")
 @app.post("/perturb/reset")
 def p_reset(): return _set(None)
 
@@ -130,12 +164,34 @@ def _argv(action: str, p: dict) -> list:
             a += ["--pin", str(p["pin"])]
         if p.get("headed"):
             a += ["--headed"]
+            if p.get("slowmo") not in (None, ""):
+                a += ["--slowmo", str(p["slowmo"])]
+            if p.get("keep_open") not in (None, ""):
+                a += ["--keep-open", str(p["keep_open"])]
+            if p.get("no_raise"):
+                a += ["--no-raise"]
+        if p.get("channel"):
+            a += ["--channel", str(p["channel"])]
         if p.get("approval_modal"):
             a += ["--no-yes"]
         return a
     if action == "guard":
         code = ("import json;from agent.reflect import run_guard;"
                 f"print(json.dumps(run_guard(base={base!r}),indent=2))")
+        return [py, "-u", "-c", code]
+    if action == "gauntlet":
+        # One button: clean + all six perturbation types, headless, auto-approved.
+        # Pass bar: every row pass AND extra <= 2.
+        code = ("import json;from agent.replayer import run_variant;"
+                "GOAL='Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days';"
+                f"BASE={base!r};"
+                "PERTS=[None,'shuffle','rename','modal','extra_step','throttle','composite'];"
+                "rows=[];"
+                "import time;"
+                "t0=time.time();"
+                "[rows.append((lambda p,r:{'perturb':p or 'clean','status':r.get('status'),'extra':r.get('extra_steps'),'heal':r.get('avg_time_to_heal_ms'),'detect':r.get('avg_time_to_detect_ms'),'ms':r.get('elapsed_ms')})(p,run_variant(variant=4,perturb=p,base=BASE,goal=GOAL,auto_approve=True,headless=True))) for p in PERTS];"
+                "ok=all(r['status']=='pass' and (r['extra'] if isinstance(r['extra'], int) else 99)<=2 for r in rows);"
+                "print(json.dumps({'status':'pass' if ok else 'fail','verdict':'gauntlet %d/7'%sum(1 for r in rows if r['status']=='pass'),'extra_steps':sum(r['extra'] or 0 for r in rows),'matrix':rows,'elapsed_ms':int((time.time()-t0)*1000)},indent=2))")
         return [py, "-u", "-c", code]
     if action == "bump":
         return [py, "-u", "-m", "agent", "propose-bump",
@@ -380,7 +436,7 @@ def api_state():
 def api_run():
     p = request.get_json(silent=True) or {}
     action = str(p.get("action") or "run")
-    if action not in ("run", "guard", "bump", "rollback"):
+    if action not in ("run", "guard", "gauntlet", "bump", "rollback"):
         return jsonify({"error": f"unknown action {action!r}"}), 400
     active = _latest_job()
     if active and active["status"] == "running":

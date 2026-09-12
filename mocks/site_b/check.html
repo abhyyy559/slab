@@ -79,11 +79,11 @@
     <p class="sub">Enter your PIN code to confirm 3-day delivery availability.</p>
     <label for="pin">PIN code</label>
     <div class="row">
-      <input id="pin" data-testid="pin-input" value="500001" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="postal-code" aria-describedby="pin-help" />
+      <input id="pin" name="pin" data-testid="pin-input" aria-label="PIN code" value="500001" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="postal-code" aria-describedby="pin-help" />
       <button data-testid="check-button" role="button">Check Delivery</button>
     </div>
     <p class="note" id="pin-help">Serviceable PIN 500001 · Hyderabad, Telangana</p>
-    <div data-testid="delivery-status" aria-live="polite"></div>
+    <div data-testid="delivery-status" id="status" role="status" aria-live="polite"></div>
   </div>
 
   <div class="steps">
@@ -105,9 +105,30 @@
 <script>
 var note = document.getElementById("pin-help");
 
+function pinEl() {
+  return document.querySelector('[data-testid="pin-input"]')
+      || document.querySelector('input[inputmode="numeric"]')
+      || document.querySelector('input[name="pin"]')
+      || document.getElementById("pin");
+}
+function statusEl() {
+  return document.querySelector('[data-testid="delivery-status"]') || document.getElementById("status");
+}
+function checkButton() {
+  var b = document.querySelector('[data-testid="check-button"]');
+  if (b) return b;
+  var btns = Array.prototype.slice.call(document.querySelectorAll("button"));
+  return btns.find(function (x) {
+    var t = (x.textContent || "").trim();
+    return t === "Check Delivery" || t === "Verify Shipment";
+  }) || null;
+}
+
 function runCheck() {
-  var pin = document.querySelector('[data-testid="pin-input"]').value.trim();
-  var el = document.querySelector('[data-testid="delivery-status"]');
+  var pe = pinEl();
+  var pin = pe ? pe.value.trim() : "";
+  var el = statusEl();
+  if (!el) return;
   // Loop-step-5 model: deliverability is per-PRODUCT, not per-PIN. Nova X1 is not
   // stocked at the 500001 hub (?product=<name> selects the candidate under test),
   // so the agent must fall back to the next-cheapest eligible pick.
@@ -119,7 +140,8 @@ function runCheck() {
 }
 
 function updateNote() {
-  var pin = document.querySelector('[data-testid="pin-input"]').value.trim();
+  var pe = pinEl();
+  var pin = pe ? pe.value.trim() : "";
   if (!note) return;
   if (pin === "") note.textContent = "Enter a 6-digit PIN code to check delivery.";
   else if (pin === "500001") note.textContent = "Serviceable PIN 500001 · Hyderabad, Telangana";
@@ -127,17 +149,22 @@ function updateNote() {
   else note.textContent = "PIN " + pin + " is outside our serviceable network.";
 }
 
-var pinEl = document.getElementById("pin");
-pinEl.addEventListener("input", function () {
-  var digits = pinEl.value.replace(/\D/g, "").slice(0, 6);
-  if (digits !== pinEl.value) pinEl.value = digits;
+document.addEventListener("input", function (e) {
+  if (!e.target || e.target.tagName !== "INPUT") return;
+  var digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+  if (digits !== e.target.value) e.target.value = digits;
   updateNote();
 });
 
-document.querySelector('[data-testid="check-button"]').addEventListener('click', function () {
-  updateNote();
-  var d = window.__chaosThrottleMs || 0;
-  if (d) setTimeout(runCheck, d); else runCheck();
+document.addEventListener("click", function (e) {
+  var btn = e.target.closest && e.target.closest("button");
+  if (!btn) return;
+  var label = (btn.textContent || "").trim();
+  if (label === "Check Delivery" || label === "Verify Shipment") {
+    updateNote();
+    var d = window.__chaosThrottleMs || 0;
+    if (d) setTimeout(runCheck, d); else runCheck();
+  }
 });
 </script>
 <script src="/chaos.js"></script>

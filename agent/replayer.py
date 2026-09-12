@@ -8,6 +8,7 @@ from .constraints import check as check_constraints, deliverable_within_days
 from .approval import require_approval, require_approval_browser
 from . import detector as det
 from . import recovery as rec
+from . import browser as bsession
 
 def load_command(path: str) -> dict:
     return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
@@ -75,7 +76,9 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                 goal: str = "", perturb: str | None = None,
                 auto_approve: bool = True, headless: bool = True,
                 budget: int | None = None, ram: int | None = None,
-                pin: str | None = None) -> dict:
+                pin: str | None = None,
+                slow_mo: int | None = None, keep_open_ms: int | None = None,
+                raise_window: bool = True, channel: str | None = None) -> dict:
     from playwright.sync_api import sync_playwright
     from .planner import plan_goal
     cmd = load_command(command_path)
@@ -114,9 +117,21 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                  "detect_ms": 0, "heal_ms": 0, "elapsed_ms": 0})
     if perturb:
         log_action(event="PERTURB_INJECTED", target=perturb, seq=seq)
+    # Headed runs are demonstrations: pick a legible slow_mo and hold the final
+    # frame long enough to read unless the caller overrides them.
+    if slow_mo is None:
+        slow_mo = 250 if not headless else 0
+    if keep_open_ms is None:
+        keep_open_ms = 6000 if not headless else 0
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=headless, slow_mo=200 if not headless else 0)
-        page = browser.new_page()
+        browser, context = bsession.launch_browser(
+            pw, headless=headless, slow_mo=slow_mo, raise_window=raise_window, channel=channel)
+        page = context.new_page()
+        if not headless:
+            bsession.focus_window(page, raise_window=raise_window)
+            log_action(event="BROWSER_WINDOW", mode="headed", raised=raise_window,
+                       slow_mo=slow_mo, keep_open_ms=keep_open_ms,
+                       stage=bsession.describe_window())
         try:
             # Step 1: open search
             url1 = _url(base, "/site_a/search.html", perturb)
@@ -127,15 +142,40 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                        signals=["selector"], state_before_hash="", state_after_hash=r["state_after_hash"],
                        duration_ms=r["duration_ms"], result=r["result"], url=url1)
             _emit_hash(seq, "", "goto:search", r["state_after_hash"])
-            page.wait_for_timeout(700 if perturb else 300)  # let chaos.js apply
-            t = Target(selector='[data-testid="search-box"]', role="textbox", name="Search phones", text="Search phones", landmark="main")
+            # Let the page settle: with judge-operated injection, chaos.js applies
+            # its changes asynchronously ~600ms after load, so a fixed sleep races it.
+            det.settle(page, quiet_ms=250, max_ms=1800 if perturb else 900)
+            t = Target(selector='[data-testid="search-box"]', role="searchbox", name="Search phones",
+                       text="Search phones", landmark="main", labels=["Search phones", "Search"])
             g, rec_info = _ground_or_recover(page, t, 1, "search_box", seq, last_good, stats)
             if g is None:
                 return {"status": "ABSTAIN", "reason": "LOW_CONFIDENCE search_box unrecoverable"}
-            # Step 2: apply filter
-            page.fill('[data-testid="max-price"]', str(budget))
-            page.fill('[data-testid="min-ram"]', str(ram))
-            t2 = Target(selector='[data-testid="apply-filter"]', role="button", name="Apply Filter", text="Apply Filter", landmark="main")
+            # Step 2: apply filter. Fill by structural label lookup so a stripped id
+            # (perturb=strip) does not break the fill; fall back to the id selector.
+            def _fill(selector: str, label: str, value: str):
+                loc = None
+                try:
+                    cand = page.get_by_label(label)
+                    if cand.count() >= 1:
+                        loc = cand.first
+                except Exception:
+                    loc = None
+                if loc is None:
+                    loc = page.locator(selector).first
+                try:
+                    loc.fill(str(value), timeout=3000)
+                    return True
+                except Exception:
+                    try:
+                        page.fill(selector, str(value))
+                        return True
+                    except Exception:
+                        return False
+
+            _fill('[data-testid="max-price"]', "Max price", budget)
+            _fill('[data-testid="min-ram"]', "Min RAM", ram)
+            t2 = Target(selector='[data-testid="apply-filter"]', role="button", name="Apply Filter",
+                        text="Apply Filter", landmark="main", labels=["Apply Filter", "Refine Results"])
             g2, rec2 = _ground_or_recover(page, t2, 2, "filter_button", seq, last_good, stats)
             if g2 is None:
                 return {"status": "ABSTAIN", "reason": "LOW_CONFIDENCE filter_button unrecoverable"}
@@ -145,10 +185,9 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                        signals=g2.signals_used, state_before_hash=r2["state_before_hash"], state_after_hash=r2["state_after_hash"],
                        duration_ms=r2["duration_ms"], result=r2["result"])
             _emit_hash(seq, r2["state_before_hash"], "click:filter", r2["state_after_hash"])
-            ok2, obs2 = det.check_post(page, "results_filtered")
-            if not ok2:  # throttle delay or intercepted click: wait, clear overlays, retry once
+            ok2, obs2 = det.wait_for_post(page, "results_filtered", timeout_ms=6000)
+            if not ok2:  # throttle delay or intercepted click: clear overlays, retry once
                 t_det = int(time.time() * 1000)
-                page.wait_for_timeout(3000)
                 rr = rec.recover(page, trigger="postcondition_failed", expected="results_filtered",
                                  observed=obs2, target=t2, postcondition="results_filtered",
                                  last_good_url=last_good, detected_at_ms=t_det)
@@ -159,13 +198,29 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                         r2b = do_action(page, "click", rr["locator"])
                         seq += 1
                         _emit_hash(seq, r2b["state_before_hash"], "click:filter:retry", r2b["state_after_hash"])
-                        page.wait_for_timeout(3000)
-                    ok2, obs2 = det.check_post(page, "results_filtered")
-            # Step 3: extract cheapest meeting constraints (B must confirm within 3 days -> loop)
-            cards = page.evaluate("""() => [...document.querySelectorAll('[data-testid="product-card"], #chaos-results > article')]
-                .filter(c => c.style.display !== 'none')
-                .map(c => ({name: c.dataset.name, price: parseInt(c.dataset.price,10), ram: parseInt(c.dataset.ram,10),
-                            text: c.innerText}))""")
+                        ok2, obs2 = det.wait_for_post(page, "results_filtered", timeout_ms=6000)
+            # Step 3: extract cheapest meeting constraints (B must confirm within 3 days -> loop).
+            # Read from whichever results list is currently live: a chaos swap() re-renders the
+            # list into a new container, and ab() hides every other card.
+            cards = page.evaluate("""() => {
+                const live = document.querySelector('#chaos-list-container')
+                    || document.querySelector('[data-testid="results"]')
+                    || document.querySelector('section[aria-label="Results"]') || document.body;
+                return [...live.querySelectorAll('article')]
+                    .filter(c => c.style.display !== 'none' && c.offsetParent !== null)
+                    .map(c => {
+                        const g = (n) => c.getAttribute('data-' + n) || c.getAttribute('data-' + n + '-m');
+                        const h2 = c.querySelector('h2');
+                        const priceTxt = (c.querySelector('.price') || {}).textContent || '';
+                        return {
+                            name: g('name') || (h2 ? h2.textContent.trim() : ''),
+                            price: parseInt(g('price') || priceTxt.replace(/[^0-9]/g,''), 10),
+                            ram: parseInt(g('ram') || (c.innerText.match(/(\\d+)\\s*GB\\s*RAM/) || [])[1], 10),
+                            text: c.innerText
+                        };
+                    })
+                    .filter(c => c.name && !isNaN(c.price));
+            }""")
             eligible = [c for c in cards if c["price"] <= budget and c["ram"] >= ram]
             if not eligible:
                 log_action(event="ABSTAIN", reason="no_results", constraint="max_price AND min_ram")
@@ -207,9 +262,11 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                            duration_ms=r3["duration_ms"], result=r3["result"], url=url2,
                            candidate=cand["name"], attempt=i + 1)
                 _emit_hash(seq, r3["state_before_hash"], f"goto:delivery:{cand['name']}", r3["state_after_hash"])
-                page.wait_for_timeout(700 if perturb else 300)
-                page.fill('[data-testid="pin-input"]', pin)
-                t4 = Target(selector='[data-testid="check-button"]', role="button", name="Check Delivery", text="Check Delivery", landmark="main")
+                det.settle(page, quiet_ms=250, max_ms=1800 if perturb else 900)
+                # Fill the PIN by structural label; id may have been stripped.
+                _fill('[data-testid="pin-input"]', "PIN code", pin)
+                t4 = Target(selector='[data-testid="check-button"]', role="button", name="Check Delivery",
+                            text="Check Delivery", landmark="main", labels=["Check Delivery", "Verify Shipment"])
                 g4, rec4 = _ground_or_recover(page, t4, 4, "check_button", seq, last_good, stats)
                 if g4 is None:
                     return {"status": "ABSTAIN", "reason": "LOW_CONFIDENCE check_button unrecoverable"}
@@ -227,7 +284,7 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                            duration_ms=r4["duration_ms"], result=r4["result"], candidate=cand["name"])
                 _emit_hash(seq, r4["state_before_hash"], "click:check", r4["state_after_hash"])
                 page.wait_for_timeout(3000 if perturb else 400)
-                ok4, obs4 = det.check_post(page, "delivery_status_visible")
+                ok4, obs4 = det.wait_for_post(page, "delivery_status_visible", timeout_ms=7000)
                 if not ok4:
                     t_det = int(time.time() * 1000)
                     rr = rec.recover(page, trigger="postcondition_failed", expected="delivery_status_visible",
@@ -235,7 +292,13 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                                      last_good_url=last_good, detected_at_ms=t_det)
                     _record(stats, rr, t_det)
                     ok4, obs4 = det.check_post(page, "delivery_status_visible")
-                status_text = page.inner_text('[data-testid="delivery-status"]') or ""
+                # status read: prefer the resilient postcondition text; fall back to the id.
+                status_text = obs4 if (ok4 and obs4 and not obs4.startswith(("delivery_status", "eval_"))) else ""
+                if not status_text:
+                    try:
+                        status_text = page.inner_text('[data-testid="delivery-status"]') or ""
+                    except Exception:
+                        status_text = ""
                 ok_deliv = deliverable_within_days(status_text)
                 attempts.append({"candidate": cand["name"], "price": cand["price"],
                                  "deliverable": ok_deliv, "observed": status_text.strip()[:80]})
@@ -289,6 +352,19 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                             f"extra={total_extra} status={out['status']}")
             return out
         finally:
+            # Hold the final frame on screen so a headed run is watchable, then
+            # close. Guarded: a demo must never fail on the way out.
+            try:
+                if not headless and keep_open_ms:
+                    if raise_window:
+                        bsession.focus_window(page, raise_window=True)
+                    bsession.hold_open(keep_open_ms, keep_foreground=raise_window)
+            except Exception:
+                pass
+            try:
+                context.close()
+            except Exception:
+                pass
             browser.close()
 
 def _write_live(state: dict):

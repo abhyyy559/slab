@@ -26,7 +26,7 @@
   header.top { background:linear-gradient(135deg,#1a56db,#0b2f87); color:#fff; padding:14px 28px; display:flex; align-items:center; gap:18px; position:sticky; top:0; z-index:10; box-shadow:0 2px 16px rgba(11,47,135,.30); }
   .logo { font-weight:800; font-size:22px; letter-spacing:.5px; white-space:nowrap; line-height:1.1; }
   .logo small { display:block; font-size:11px; font-weight:400; opacity:.85; letter-spacing:2px; }
-  .searchbar { display:flex; flex:1; max-width:640px; }
+  form.searchbar { display:flex; flex:1; max-width:640px; margin:0; }
   .searchbar input { flex:1; min-width:0; padding:11px 14px; border:none; border-radius:9px 0 0 9px; font-size:15px; outline:none; }
   .searchbar input:focus { box-shadow:inset 0 0 0 2px #ffb800; }
   .searchbar button { background:#ffb800; border:none; padding:0 26px; font-size:15px; font-weight:700; border-radius:0 9px 9px 0; cursor:pointer; color:#3a2a00; }
@@ -62,9 +62,9 @@
   .applied { font-size:11.5px; font-weight:600; color:var(--brand-dark); background:#f4f7ff; border:1px solid #dbe4fa; padding:3px 10px; border-radius:20px; }
   .results-bar .spacer { margin-left:auto; }
   .results-bar select { font-size:13px; padding:8px 10px; border:1px solid var(--line); border-radius:9px; color:var(--ink); background:#fff; }
-  section[data-testid="results"] { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px; }
-  article[data-testid="product-card"] { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px; transition:box-shadow .15s ease, transform .15s ease; }
-  article[data-testid="product-card"]:hover { box-shadow:0 8px 22px rgba(26,86,219,.16); transform:translateY(-2px); }
+  section[data-testid="results"], #chaos-list-container { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px; }
+  article[data-testid="product-card"], #chaos-list-container > article { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px; transition:box-shadow .15s ease, transform .15s ease; }
+  article:hover { box-shadow:0 8px 22px rgba(26,86,219,.16); transform:translateY(-2px); }
   .thumb { background:linear-gradient(140deg,#dbe7ff,#f4f7ff); border-radius:10px; height:112px; display:flex; align-items:center; justify-content:center; color:var(--brand); }
   article h2 { font-size:15.5px; line-height:1.3; margin:0; }
   .rating { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
@@ -92,7 +92,7 @@
 
   @media (max-width:940px) {
     header.top { flex-wrap:wrap; gap:12px; padding:12px 16px; }
-    .searchbar { order:3; flex-basis:100%; max-width:none; }
+    form.searchbar { order:3; flex-basis:100%; max-width:none; }
     .topnav { gap:14px; font-size:13px; }
     .wrap { flex-direction:column; padding:0 14px; }
     aside.filters { width:100%; }
@@ -111,11 +111,11 @@
 
 <header class="top">
   <div class="logo" data-testid="site-title">VoltKart<small>ELECTRONICS</small></div>
-  <div class="searchbar">
+  <form class="searchbar" role="search" onsubmit="return false">
     <input data-testid="search-box" aria-label="Search phones" placeholder="Search for phones, brands and more…" value="phone" />
-    <button data-testid="search-button" role="button">Search</button>
-  </div>
-  <nav class="topnav">
+    <button data-testid="search-button" role="button" type="submit">Search</button>
+  </form>
+  <nav class="topnav" aria-label="Primary">
     <a href="#">Mobiles</a>
     <a href="#">Audio</a>
     <a href="#">Laptops</a>
@@ -129,11 +129,11 @@
 <div class="wrap">
   <aside class="filters" aria-label="Filters">
     <h3>Filters</h3>
-    <div class="fgroup">
+    <div class="fgroup" role="group" aria-label="Price and memory">
       <label for="fmax">Max price (Rs)</label>
-      <input id="fmax" type="text" data-testid="max-price" value="20000" />
+      <input id="fmax" type="text" data-testid="max-price" aria-label="Max price" value="20000" />
       <label for="fmin">Min RAM (GB)</label>
-      <input id="fmin" type="text" data-testid="min-ram" value="8" />
+      <input id="fmin" type="text" data-testid="min-ram" aria-label="Min RAM" value="8" />
     </div>
     <div class="fgroup">
       <label>Customer rating</label>
@@ -240,18 +240,37 @@
 <script>
 var grid = document.querySelector('[data-testid="results"]');
 var cards = Array.prototype.slice.call(document.querySelectorAll('[data-testid="product-card"]'));
-cards.forEach(function (c, i) { c.dataset.idx = String(i); });  /* keep original order for "Relevance" */
+cards.forEach(function (c, i) { c.dataset.idx = String(i); });
 
 function rupees(n) { return "Rs " + n.toLocaleString("en-IN"); }
-function priceOf(c) { return parseInt(c.dataset.price, 10); }
-function ratingOf(c) { return parseFloat(c.dataset.rating) || 0; }
+function priceOf(c) { return parseInt(c.dataset.price || c.getAttribute("data-price-m"), 10); }
+function ramOf(c) { return parseInt(c.dataset.ram || c.getAttribute("data-ram-m"), 10); }
+function ratingOf(c) { return parseFloat(c.dataset.rating || c.getAttribute("data-rating-m")) || 0; }
+function nameOf(c) { return c.dataset.name || c.getAttribute("data-name-m") || (c.querySelector("h2") || {}).textContent || ""; }
+function liveCards() {
+  /* The chaos swap() moves the visible list into #chaos-list-container; always
+     operate on the list that is actually shown. */
+  var live = document.querySelector('#chaos-list-container') || document.querySelector('[data-testid="results"]');
+  return live ? Array.prototype.slice.call(live.querySelectorAll("article")) : [];
+}
+
+function maxPriceEl() {
+  return document.querySelector('[data-testid="max-price"]') || document.getElementById("fmax")
+      || document.querySelector('input[aria-label="Max price"]');
+}
+function minRamEl() {
+  return document.querySelector('[data-testid="min-ram"]') || document.getElementById("fmin")
+      || document.querySelector('input[aria-label="Min RAM"]');
+}
 
 function applyFilters() {
-  var max = parseInt(document.querySelector('[data-testid="max-price"]').value || "0", 10);
-  var minRam = parseInt(document.querySelector('[data-testid="min-ram"]').value || "0", 10);
+  var me = maxPriceEl(), re = minRamEl();
+  var max = parseInt((me && me.value) || "0", 10);
+  var minRam = parseInt((re && re.value) || "0", 10);
   var visible = 0;
-  cards.forEach(function (c) {
-    var show = (priceOf(c) <= max && parseInt(c.dataset.ram, 10) >= minRam);
+  liveCards().forEach(function (c) {
+    var show = (priceOf(c) <= max && ramOf(c) >= minRam);
+    if (c.getAttribute("data-chaos-hid")) { c.style.display = "none"; return; }
     c.style.display = show ? "" : "none";
     if (show) visible++;
   });
@@ -260,10 +279,7 @@ function applyFilters() {
   var shown = document.getElementById("shown");
   if (shown) shown.textContent = String(visible);
   var applied = document.getElementById("applied");
-  if (applied) {
-    applied.textContent = "Max " + rupees(max) + " · Min " + minRam + "GB RAM";
-    applied.hidden = false;
-  }
+  if (applied) { applied.textContent = "Max " + rupees(max) + " · Min " + minRam + "GB RAM"; applied.hidden = false; }
 }
 
 function sortCards(mode) {
@@ -272,16 +288,20 @@ function sortCards(mode) {
   if (mode === "price-asc") cmp = function (a, b) { return priceOf(a) - priceOf(b); };
   if (mode === "price-desc") cmp = function (a, b) { return priceOf(b) - priceOf(a); };
   if (mode === "rating") cmp = function (a, b) { return ratingOf(b) - ratingOf(a); };
-  cards.slice().sort(cmp).forEach(function (c) { grid.appendChild(c); });
+  liveCards().slice().sort(cmp).forEach(function (c) { c.parentNode.appendChild(c); });
 }
 
-document.querySelector('[data-testid="apply-filter"]').addEventListener('click', function () {
-  var d = window.__chaosThrottleMs || 0;
-  if (d) setTimeout(applyFilters, d); else applyFilters();
+document.addEventListener("click", function (e) {
+  var btn = e.target.closest && e.target.closest("button");
+  if (!btn) return;
+  var label = (btn.textContent || "").trim();
+  if (label === "Apply Filter" || label === "Refine Results") {
+    var d = window.__chaosThrottleMs || 0;
+    if (d) setTimeout(applyFilters, d); else applyFilters();
+  }
 });
-
-document.getElementById("sort").addEventListener("change", function (e) {
-  sortCards(e.target.value);
+document.addEventListener("change", function (e) {
+  if (e.target && e.target.id === "sort") sortCards(e.target.value);
 });
 </script>
 <script src="/chaos.js"></script>

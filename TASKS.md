@@ -44,8 +44,18 @@
 - [x] Infeasible variant (+1): budget 8000 + 12GB → ABSTAIN naming `max_price AND min_ram` (verified)
 - [x] Regression-guard + rollback: guard v1/v2/v3/v4/v6, good ACCEPTED v1→v2, bad REJECTED, rollback→v1 green; `logs/versions.jsonl` (verified). Re-run green after storefront restyle v2. Un-cutting "learning" from the pitch is still an owner call.
 - [x] Run history: summaries persisted to `logs/dashboard-runs.jsonl` (goal, outcome, extra steps, detect/heal, recoveries), `/api/history` + `/api/history/<id>`, dashboard panel with cross-run recovery-cost comparison; click a row to reload its result card.
+
+## Production hardening pass (2026-09-12)
+- [x] **Visible window fix** (`agent/browser.py`): headed runs now open a real, maximized, foreground window on the current screen, hold it open after the run (`--keep-open`, default 6s), and slow to a legible pace (`--slowmo`, default 250ms). New flags: `--headed/--slowmo/--keep-open/--no-raise/--channel`.
+- [x] **Chaos engine expanded** (`mocks/chaos.js`): rename, strip, move, attrs, modal, extra_step, throttle, ab, swap, composite, chaos_max. Deterministic (`?perturb=`) + judge-operated (600ms poll, now racing-safe).
+- [x] **Structural grounding** (`agent/grounder.py`): 5-signal fusion now falls back to ARIA role + accessible name + label association + synonym table when test ids are stripped/renamed. `discover()` for structure-first control lookup.
+- [x] **Adaptive waits** (`agent/detector.py`): `settle()` (DOM-quiet) + `wait_for_post()` (poll to deadline) replace fixed sleeps — this fixed the judge-operated live-injection ABSTAIN (chaos lands ~600ms after load, a fixed 300ms sleep raced it).
+- [x] **Mock sites hardened**: controls carry `aria-label`/`role`/landmark structure; page-side JS reads structurally (`#fmax`/`#fmin`, `pinEl()`, `statusEl()`) so a testid strip no longer breaks the site's own logic.
+- [x] **Test suite**: 40 fast unit tests (`test_chaos_engine.py`, `test_grounding.py`, upgraded `test_mock_contracts.py`) + 21 live adaptive-battery tests (`test_adaptive_live.py`) covering every perturbation end-to-end. All green.
+- [x] Console: generic `/perturb/<type>` injector, `/api/perturbations` catalogue, 12 chaos buttons, new presets (chaos_max, strip), slow-mo/keep-open inputs.
+
+## Backlog
 - [ ] Medicine-finder swap: pharmacy + clinic mocks replace phone v0; re-verify v1 + v4 (the planner now refuses `medicine` goals with `unsupported_goal`, so lifting that refusal goes with this task)
-- [x] Credibility run: same-family real HTML (books.toscrape.com), pass or honest ABSTAIN
 - [ ] README architecture diagram + ONE-PAGER metrics from real logs
 - [x] Backup MP4 (≤3 min, real execution) + 5-min demo rehearsal ×2 laptops
 

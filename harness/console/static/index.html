@@ -64,6 +64,9 @@
   .presets button.sel { border-color:var(--blue); background:rgba(96,165,250,.12); }
   .toog { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); margin:10px 0; }
   .toog input { accent-color:var(--blue); }
+  .rowchk { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+  .rowchk > div { flex:1; min-width:120px; }
+  .rowchk input { width:100%; padding:8px 10px; background:var(--panel2); border:1px solid var(--line); color:var(--ink); border-radius:8px; font-size:13px; }
 
   .chaos { display:flex; gap:6px; flex-wrap:wrap; }
   .chaos button { font-size:12px; padding:7px 10px; }
@@ -204,16 +207,25 @@
         <div><label class="f">perturb</label>
           <select id="perturb">
             <option value="">none (clean)</option>
-            <option value="shuffle">shuffle</option>
-            <option value="rename">rename</option>
-            <option value="modal">modal</option>
-            <option value="extra_step">extra_step</option>
-            <option value="throttle">throttle</option>
-            <option value="composite">composite</option>
+            <option value="rename">rename — labels swapped</option>
+            <option value="strip">strip — test ids removed</option>
+            <option value="move">move — controls relocated</option>
+            <option value="attrs">attrs — attributes mutated</option>
+            <option value="modal">modal — blocking overlay</option>
+            <option value="extra_step">extra_step — interstitial</option>
+            <option value="throttle">throttle — slow network</option>
+            <option value="ab">ab — alternate result set</option>
+            <option value="swap">swap — list re-rendered</option>
+            <option value="composite">composite — all but ab/swap</option>
+            <option value="chaos_max">chaos_max — everything</option>
           </select></div>
       </div>
       <label class="toog"><input type="checkbox" id="headed" checked> visible browser window</label>
       <label class="toog"><input type="checkbox" id="approval_modal" checked> require approval modal before submit</label>
+      <div class="rowchk">
+        <div><label class="f">slow-mo (ms)</label><input type="text" id="slowmo" placeholder="250" style="width:80px"></div>
+        <div><label class="f">keep window open (ms)</label><input type="text" id="keep_open" placeholder="6000" style="width:100px"></div>
+      </div>
       <button class="primary wide" id="btn-run">▶ Run agent</button>
       <div class="hint" id="argv-hint"></div>
     </section>
@@ -222,6 +234,7 @@
       <h2>Regression &amp; learning</h2>
       <p class="sub">Guard = 5 variants. Bump = propose a lesson, accept only if the guard stays green.</p>
       <button class="wide" id="btn-guard" style="margin-top:4px">Run full guard (5 variants)</button>
+      <button class="wide" id="btn-gauntlet" style="margin-top:4px">Run chaos matrix (clean + 6 perturbs)</button>
       <div class="row" style="margin-top:8px">
         <button class="sm" id="btn-bump-good">propose bump · good</button>
         <button class="sm" id="btn-bump-bad">propose bump · bad</button>
@@ -275,12 +288,14 @@ const ms = v => (v === null || v === undefined) ? "—" : v + " ms";
 
 const PRESETS = {
   clean:      {variant:"1", perturb:"",          budget:"",     ram:"",  pin:"",       label:"Clean run", sub:"v1 · default params"},
-  chaos:      {variant:"4", perturb:"composite", budget:"",     ram:"",  pin:"",       label:"Composite chaos", sub:"v4 · all 6 perturbations"},
+  chaos:      {variant:"4", perturb:"composite", budget:"",     ram:"",  pin:"",       label:"Composite chaos", sub:"v4 · rename/strip/move/attrs + modal"},
+  chaosmax:   {variant:"4", perturb:"chaos_max", budget:"",     ram:"",  pin:"",       label:"Chaos max", sub:"v4 · everything incl. ab + swap"},
+  strip:      {variant:"4", perturb:"strip",     budget:"",     ram:"",  pin:"",       label:"Strip test ids", sub:"v4 · agent must go structural"},
   infeasible: {variant:"6", perturb:"",          budget:"8000", ram:"12",pin:"",       label:"Infeasible", sub:"8k @ 12GB → must ABSTAIN"},
   badpin:     {variant:"3", perturb:"",          budget:"",     ram:"",  pin:"500002", label:"Bad PIN", sub:"v3 · unserviceable → ABSTAIN"},
   tight:      {variant:"2", perturb:"",          budget:"25000",ram:"",  pin:"",       label:"Tight budget", sub:"v2 · 25k changes the pick"},
 };
-const CHAOS = ["shuffle","rename","modal","extra_step","throttle","composite","reset"];
+const CHAOS = ["rename","strip","move","attrs","modal","extra_step","throttle","ab","swap","composite","chaos_max","reset"];
 
 let es = null, jobId = null, t0 = null, running = false;
 
@@ -305,6 +320,8 @@ function params() {
     pin: $("#pin").value.trim() || null,
     headed: $("#headed").checked,
     approval_modal: $("#approval_modal").checked,
+    slowmo: ($("#slowmo") && $("#slowmo").value.trim()) || null,
+    keep_open: ($("#keep_open") && $("#keep_open").value.trim()) || null,
   };
 }
 function hint() {
@@ -314,6 +331,8 @@ function hint() {
   if (p.ram !== null) bits.push("--ram " + p.ram);
   if (p.pin) bits.push("--pin " + p.pin);
   if (p.headed) bits.push("--headed");
+  if (p.slowmo) bits.push("--slowmo " + p.slowmo);
+  if (p.keep_open) bits.push("--keep-open " + p.keep_open);
   if (p.approval_modal) bits.push("--no-yes");
   $("#argv-hint").textContent = "python -m agent run " + bits.join(" ");
 }
@@ -389,7 +408,7 @@ function finish() {
 }
 
 function setRunning(on) {
-  ["#btn-run","#btn-guard","#btn-bump-good","#btn-bump-bad","#btn-rollback"]
+  ["#btn-run","#btn-guard","#btn-gauntlet","#btn-bump-good","#btn-bump-bad","#btn-rollback"]
     .forEach(s => $(s).disabled = on);
   $("#b-job").textContent = on ? "running" : "idle";
   $("#p-job").classList.toggle("run", on);
@@ -508,6 +527,19 @@ function kv(rows) {
 function renderResult(res, status) {
   const box = $("#result");
   if (!res) { box.innerHTML = '<div class="verdict fail">no JSON result parsed — see raw stdout</div>'; return; }
+
+  // gauntlet: clean + every perturbation type in one click
+  if (res.matrix) {
+    const n = res.matrix.filter(r => r.status === "pass").length;
+    box.innerHTML = '<div class="verdict ' + (res.status === "pass" ? "pass" : "fail") + '">'
+      + esc(res.verdict || ("gauntlet " + n + "/7")) + '</div>'
+      + "<table><thead><tr><th>perturb</th><th>status</th><th>extra</th><th>heal ms</th></tr></thead><tbody>"
+      + res.matrix.map(r => "<tr><td>" + esc(r.perturb) + "</td><td>"
+        + (r.status === "pass" ? '<span class="ok-chip">pass</span>' : '<span class="bad-chip">' + esc(r.status) + "</span>")
+        + "</td><td class=\"mono\">" + esc(r.extra ?? "—") + '</td><td class="mono">' + esc(r.heal ?? "—") + "</td></tr>").join("")
+      + "</tbody></table>";
+    return;
+  }
 
   // guard result
   if (res.overall !== undefined) {
@@ -755,6 +787,7 @@ async function refreshState() {
 
 $("#btn-run").onclick = () => start("run");
 $("#btn-guard").onclick = () => start("guard");
+$("#btn-gauntlet").onclick = () => start("gauntlet");
 $("#btn-bump-good").onclick = () => start("bump", { mode: "good" });
 $("#btn-bump-bad").onclick = () => start("bump", { mode: "bad" });
 $("#btn-rollback").onclick = () => start("rollback", { to: 1 });
