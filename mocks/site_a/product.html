@@ -2,62 +2,152 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b2f87">
 <title>VoltKart — Product</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%231a56db'/><path d='M18 4 8 19h6l-1 9 10-15h-6z' fill='%23ffb800'/></svg>">
 <style>
-  :root { --brand:#1a56db; --brand-dark:#1443ad; --brand-ink:#0b2f87; --bg:#eef2f8; --card:#fff; --ink:#17233b; --muted:#667085; --line:#e4e9f2; --ok:#067647; --okbg:#ecfdf3; --okline:#a6f4c5; }
+  :root {
+    --brand:#1a56db; --brand-dark:#1443ad; --brand-ink:#0b2f87;
+    --bg:#eef2f8; --card:#fff; --ink:#17233b; --muted:#667085; --line:#e4e9f2;
+    --ok:#067647; --okbg:#ecfdf3; --okline:#a6f4c5; --radius:14px; --shadow:0 1px 3px rgba(16,24,40,.06);
+  }
   * { box-sizing:border-box; }
+  html { -webkit-text-size-adjust:100%; }
   body { margin:0; font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif; background:var(--bg); color:var(--ink); }
-  .strip { background:var(--brand-ink); color:#c9dcff; font-size:12px; padding:7px 28px; }
-  header { background:linear-gradient(135deg,#1a56db,#0b2f87); color:#fff; padding:14px 28px; font-weight:800; font-size:20px; display:flex; align-items:center; gap:6px; }
-  header a { color:#cfe0ff; font-size:13px; font-weight:400; text-decoration:none; margin-left:16px; }
-  header a:hover { color:#fff; text-decoration:underline; }
-  .crumb { max-width:860px; margin:18px auto 0; padding:0 20px; font-size:13px; color:var(--muted); }
+  :focus-visible { outline:3px solid #ffb800; outline-offset:2px; border-radius:6px; }
+
+  .strip { background:var(--brand-ink); color:#c9dcff; font-size:12px; letter-spacing:.4px; padding:7px 28px; display:flex; justify-content:space-between; gap:18px; flex-wrap:wrap; }
+  header.top { background:linear-gradient(135deg,#1a56db,#0b2f87); color:#fff; padding:14px 28px; display:flex; align-items:center; gap:18px; position:sticky; top:0; z-index:10; box-shadow:0 2px 16px rgba(11,47,135,.30); }
+  .logo { font-weight:800; font-size:22px; line-height:1.1; white-space:nowrap; }
+  .logo small { display:block; font-size:11px; font-weight:400; opacity:.85; letter-spacing:2px; }
+  header.top .nav { margin-left:auto; display:flex; gap:20px; font-size:14px; align-items:center; }
+  header.top .nav a { color:#dbe7ff; text-decoration:none; white-space:nowrap; }
+  header.top .nav a:hover { color:#fff; text-decoration:underline; }
+
+  .crumb { max-width:1000px; margin:18px auto 0; padding:0 20px; font-size:13px; color:var(--muted); }
+  .crumb a { color:var(--muted); text-decoration:none; }
+  .crumb a:hover { color:var(--brand); text-decoration:underline; }
   .crumb b { color:var(--ink); }
-  main { max-width:860px; margin:12px auto 24px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:30px; display:flex; gap:28px; box-shadow:0 1px 3px rgba(16,24,40,.06); }
-  .thumb { background:linear-gradient(140deg,#dbe7ff,#f4f7ff); border-radius:12px; min-width:240px; height:240px; display:flex; align-items:center; justify-content:center; color:var(--brand); }
-  h1 { margin:0 0 4px; font-size:24px; }
-  .rating { font-size:13px; color:var(--muted); margin-bottom:10px; }
+
+  main { max-width:1000px; margin:12px auto 22px; padding:0 20px; display:grid; grid-template-columns:minmax(300px,380px) 1fr; gap:22px; align-items:start; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); }
+  .gallery { padding:18px; }
+  .hero { background:linear-gradient(140deg,#dbe7ff,#f4f7ff); border-radius:12px; height:280px; display:flex; align-items:center; justify-content:center; color:var(--brand); }
+  .thumbs { display:flex; gap:10px; margin-top:12px; }
+  .thumbs div { flex:1; height:62px; border:1px solid var(--line); border-radius:10px; background:linear-gradient(140deg,#f4f7ff,#fff); display:flex; align-items:center; justify-content:center; color:var(--brand); }
+  .thumbs div.active { border-color:var(--brand); box-shadow:0 0 0 2px rgba(26,86,219,.18); }
+
+  .info { padding:26px 28px; }
+  h1 { margin:0 0 6px; font-size:23px; line-height:1.25; }
+  .rating { font-size:13px; color:var(--muted); margin-bottom:12px; }
   .stars { color:#f79009; letter-spacing:1px; }
-  .price { font-size:27px; font-weight:800; color:var(--brand-ink); margin:6px 0 2px; }
-  .mrp { font-size:14px; color:var(--muted); margin:0 0 14px; }
+  .pricebox { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .price { font-size:29px; font-weight:800; color:var(--brand-ink); margin:0; }
+  .mrp { font-size:14px; color:var(--muted); margin:4px 0 14px; }
   .mrp s { text-decoration:line-through; }
+  .off { font-size:12px; font-weight:700; color:#067647; background:#ecfdf3; border:1px solid #a6f4c5; padding:3px 9px; border-radius:20px; }
+  .ram { font-size:13.5px; color:#667085; margin:0 0 14px; }
   .chiprow { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 18px; }
   .chip { font-size:12px; background:#f4f7ff; color:var(--brand-dark); border:1px solid #dbe4fa; padding:4px 11px; border-radius:20px; font-weight:600; }
   ul.specs { margin:0 0 20px; padding-left:18px; font-size:13.5px; color:var(--muted); line-height:1.7; }
-  .buy { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-  button { background:var(--brand); color:#fff; border:none; padding:13px 30px; font-size:15px; font-weight:700; border-radius:10px; cursor:pointer; }
+  .buy { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding-top:16px; border-top:1px solid var(--line); }
+  .qty { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); }
+  .qty select { font-size:14px; padding:10px 8px; border:1px solid var(--line); border-radius:9px; background:#fff; }
+  button { background:var(--brand); color:#fff; border:none; padding:13px 26px; font-size:15px; font-weight:700; border-radius:10px; cursor:pointer; }
   button:hover { background:var(--brand-dark); }
-  .stock { font-size:13px; font-weight:700; color:var(--ok); background:var(--okbg); border:1px solid var(--okline); padding:6px 12px; border-radius:20px; }
-  footer { text-align:center; color:var(--muted); font-size:12px; padding:22px; }
+  .stock { font-size:13px; font-weight:700; color:var(--ok); background:var(--okbg); border:1px solid var(--okline); padding:6px 12px; border-radius:20px; white-space:nowrap; }
+
+  .side { display:flex; flex-direction:column; gap:14px; grid-column:2; }
+  .side .box { padding:18px 20px; }
+  .side h3 { margin:0 0 10px; font-size:13px; text-transform:uppercase; letter-spacing:1.1px; color:var(--muted); }
+  .sla { display:flex; gap:10px; flex-wrap:wrap; }
+  .sla div { flex:1; min-width:150px; border:1px solid var(--line); border-radius:11px; padding:11px 13px; font-size:12.5px; color:var(--muted); }
+  .sla b { display:block; color:var(--ink); font-size:13.5px; margin-bottom:2px; }
+  .offers { margin:0; padding-left:18px; font-size:13.5px; color:var(--muted); line-height:1.8; }
+  .offers b { color:var(--ink); }
+
+  footer { text-align:center; color:var(--muted); font-size:12px; padding:24px; }
+
+  @media (max-width:860px) {
+    main { grid-template-columns:1fr; padding:0 14px; }
+    .side { grid-column:1; }
+    header.top { flex-wrap:wrap; gap:12px; padding:12px 16px; }
+    header.top .nav { margin-left:0; gap:14px; font-size:13px; }
+    .info { padding:20px; }
+    .strip, footer { padding-left:16px; padding-right:16px; }
+    .crumb { padding:0 14px; }
+  }
 </style>
 </head>
 <body>
-<div class="strip">Free delivery on orders over Rs 999 · No-cost EMI available</div>
-<header>VoltKart <a href="/site_a/search.html">← back to search</a></header>
+<div class="strip">
+  <span>Free delivery on orders over Rs 999 · No-cost EMI available</span>
+  <span>VoltKart demo storefront · prices include GST</span>
+</div>
 
-<div class="crumb">Home / Mobiles / <b>Product details</b></div>
+<header class="top">
+  <div class="logo" data-testid="site-title">VoltKart<small>ELECTRONICS</small></div>
+  <nav class="nav">
+    <a href="#">Mobiles</a>
+    <a href="#">Audio</a>
+    <a href="#">Offers</a>
+    <a href="/site_a/search.html">← back to search</a>
+  </nav>
+</header>
+
+<div class="crumb"><a href="/site_a/search.html">Home</a> / <a href="/site_a/search.html">Mobiles</a> / <b id="crumb-name">Pixel Lite 8GB</b></div>
 
 <main>
-  <div class="thumb" aria-hidden="true">
-    <svg viewBox="0 0 24 24" width="110" height="110" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="6" y="2" width="12" height="20" rx="3"/><line x1="10.5" y1="18.5" x2="13.5" y2="18.5"/>
-    </svg>
+  <div class="panel gallery">
+    <div class="hero" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="128" height="128" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="2" width="12" height="20" rx="3"/><line x1="10.5" y1="18.5" x2="13.5" y2="18.5"/>
+      </svg>
+    </div>
+    <div class="thumbs" aria-hidden="true">
+      <div class="active"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="2" width="12" height="20" rx="3"/></svg></div>
+      <div><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="2" width="12" height="20" rx="3"/><circle cx="12" cy="8" r="2.5"/></svg></div>
+      <div><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="2" width="12" height="20" rx="3"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>
+    </div>
   </div>
-  <div>
+
+  <div class="panel info">
     <h1 data-testid="product-name">Pixel Lite 8GB</h1>
-    <div class="rating"><span class="stars">★★★★★</span> 4.6 · 5,903 ratings · VoltKart Assured</div>
+    <div class="rating"><span class="stars" id="rating-stars">★★★★★</span> <span id="rating-line">4.6 · 5,903 ratings · VoltKart Assured</span></div>
     <p class="price" data-testid="product-price">Rs 18,999</p>
-    <p class="mrp">M.R.P. <s>Rs 21,499</s> &nbsp;·&nbsp; 12% off &nbsp;·&nbsp; inclusive of all taxes</p>
-    <p class="ram" data-testid="product-ram" style="font-size:13.5px;color:#667085;margin:0 0 16px">8GB RAM · 128GB storage · 5G</p>
-    <div class="chiprow"><span class="chip">8GB RAM</span><span class="chip">128GB</span><span class="chip">5G</span><span class="chip">5000 mAh</span></div>
-    <ul class="specs">
+    <p class="mrp">M.R.P. <s id="mrp">Rs 21,499</s> &nbsp;·&nbsp; <span id="off">12% off</span> &nbsp;·&nbsp; inclusive of all taxes</p>
+    <p class="ram" data-testid="product-ram">8GB RAM · 128GB storage · 5G</p>
+    <div class="chiprow" id="chips"><span class="chip">8GB RAM</span><span class="chip">128GB</span><span class="chip">5G</span><span class="chip">5000 mAh</span></div>
+    <ul class="specs" id="specs">
       <li>6.4″ AMOLED display, 90Hz</li>
       <li>Triple camera · 50MP main</li>
       <li>Two-year brand warranty</li>
     </ul>
     <div class="buy">
       <button data-testid="enquire-button" role="button">Enquire</button>
+      <span class="qty"><label for="qty">Qty</label>
+        <select id="qty"><option>1</option><option>2</option><option>3</option></select>
+      </span>
       <span class="stock">In stock · ships today</span>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="panel box">
+      <h3>Delivery &amp; service</h3>
+      <div class="sla">
+        <div><b>Free delivery</b>Orders over Rs 999</div>
+        <div><b>7-day replacement</b>Verified sellers only</div>
+        <div><b>Secure checkout</b>UPI · cards · COD</div>
+      </div>
+    </div>
+    <div class="panel box">
+      <h3>Available offers</h3>
+      <ul class="offers">
+        <li><b>Bank offer:</b> 10% instant discount on credit cards</li>
+        <li><b>Exchange:</b> Up to Rs 4,000 off on your old phone</li>
+        <li><b>No-cost EMI:</b> from Rs 1,584/month</li>
+      </ul>
     </div>
   </div>
 </main>
@@ -65,11 +155,73 @@
 <footer>VoltKart demo storefront · prices include GST · free delivery over Rs 999</footer>
 
 <script>
-const q = new URLSearchParams(location.search).get("name");
-if (q) {
-  const el = document.querySelector('[data-testid="product-name"]');
-  if (el) el.textContent = decodeURIComponent(q) + " 8GB";
-}
+/* Product pages are linked from search results with ?name=<product>.
+   Static markup already shows the Pixel Lite default, so this only needs to
+   re-point the fields when a different product is requested. */
+var PRODUCTS = {
+  "Nova X1": {
+    name: "Nova X1 6GB", price: 15999, mrp: 17999, off: "11% off",
+    rating: "★★★★☆", ratingLine: "4.1 · 2,148 ratings · VoltKart Assured",
+    ram: "6GB RAM · 128GB storage · 4G",
+    chips: ["6GB RAM", "128GB", "4G", "5000 mAh"],
+    specs: ["6.2″ HD+ display, 60Hz", "Dual camera · 48MP main", "One-year brand warranty"]
+  },
+  "Pixel Lite": {
+    name: "Pixel Lite 8GB", price: 18999, mrp: 21499, off: "12% off",
+    rating: "★★★★★", ratingLine: "4.6 · 5,903 ratings · VoltKart Assured",
+    ram: "8GB RAM · 128GB storage · 5G",
+    chips: ["8GB RAM", "128GB", "5G", "5000 mAh"],
+    specs: ["6.4″ AMOLED display, 90Hz", "Triple camera · 50MP main", "Two-year brand warranty"]
+  },
+  "Galaxy Max": {
+    name: "Galaxy Max 12GB", price: 24999, mrp: 27999, off: "10% off",
+    rating: "★★★★☆", ratingLine: "4.4 · 3,317 ratings · VoltKart Assured",
+    ram: "12GB RAM · 256GB storage · 5G",
+    chips: ["12GB RAM", "256GB", "5G", "6000 mAh"],
+    specs: ["6.7″ AMOLED display, 120Hz", "Quad camera · 108MP main", "Two-year brand warranty"]
+  }
+};
+
+(function () {
+  var requested = (new URLSearchParams(location.search).get("name") || "").trim();
+  var key = Object.keys(PRODUCTS).filter(function (k) {
+    return requested && requested.toLowerCase().indexOf(k.toLowerCase()) === 0;
+  })[0];
+  var p = PRODUCTS[key || "Pixel Lite"];
+
+  function set(sel, text) { var el = document.querySelector(sel); if (el) el.textContent = text; }
+  var rupees = function (n) { return "Rs " + n.toLocaleString("en-IN"); };
+
+  set('[data-testid="product-name"]', p.name);
+  set("#crumb-name", p.name);
+  set('[data-testid="product-price"]', rupees(p.price));
+  set("#mrp", rupees(p.mrp));
+  set("#off", p.off);
+  set('[data-testid="product-ram"]', p.ram);
+  set("#rating-stars", p.rating);
+  set("#rating-line", p.ratingLine);
+
+  var chips = document.getElementById("chips");
+  if (chips) {
+    chips.innerHTML = "";
+    p.chips.forEach(function (c) {
+      var s = document.createElement("span");
+      s.className = "chip";
+      s.textContent = c;
+      chips.appendChild(s);
+    });
+  }
+  var specs = document.getElementById("specs");
+  if (specs) {
+    specs.innerHTML = "";
+    p.specs.forEach(function (s) {
+      var li = document.createElement("li");
+      li.textContent = s;
+      specs.appendChild(li);
+    });
+  }
+  document.title = "VoltKart — " + p.name;
+})();
 </script>
 <script src="/chaos.js"></script>
 </body>

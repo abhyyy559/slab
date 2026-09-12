@@ -2,7 +2,7 @@
 import json, pathlib, time
 from .grounder import ground, Target, TAU
 from .executor import do_action, state_hash
-from .logger import log_action, log_hash, log_recovery
+from .logger import log_action, log_hash, log_recovery, stage
 from .evidence import make_claim
 from .constraints import check as check_constraints, deliverable_within_days
 from .approval import require_approval, require_approval_browser
@@ -19,7 +19,8 @@ def _url(base: str, path: str, perturb: str | None) -> str:
 def _emit_hash(seq: int, before: str, action: str, after: str):
     h = state_hash(action)
     log_hash(seq=seq, before=before, action_hash=h, after=after)
-    print(f"HASH seq={seq} {after[:12]}... ({action})", flush=True)
+    stage("step", f"\u2713 step action: {action}")
+    stage("hash", f"HASH seq={seq} {after[:12]}... ({action})")
 
 def _record(stats: dict, r: dict, detected_at_ms: int):
     """Count genuine extra steps (dismissals, backtracks, retries — not re-grounds)."""
@@ -32,6 +33,8 @@ def _record(stats: dict, r: dict, detected_at_ms: int):
                  strategy=r["strategy"], steps=r["steps"],
                  time_to_heal_ms=r["time_to_heal_ms"], verified=r["verified"],
                  confidence_after=r["confidence_after"])
+    stage("recovery", f"\u26a0 RECOVERY: {r['trigger']} -> {r['strategy']}")
+    stage("healed", f"\u2713 HEALED in {r['time_to_heal_ms']}ms (verified={r['verified']})")
 
 def _handle_scan(page, changes: list, last_good: str | None, stats: dict) -> dict | None:
     """Clear blocking side effects found by scan. Returns recovery record (or None if clean)."""
@@ -106,10 +109,13 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
     stats = {"extra": [], "heal": [], "detect": []}
     evidences, last_good = [], None
     t_start = time.time()
+    _write_live({"run_id": f"v{variant}/{perturb or 'clean'}", "step": "0/4",
+                 "status": "running", "extra_steps": 0,
+                 "detect_ms": 0, "heal_ms": 0, "elapsed_ms": 0})
     if perturb:
         log_action(event="PERTURB_INJECTED", target=perturb, seq=seq)
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=headless)
+        browser = pw.chromium.launch(headless=headless, slow_mo=200 if not headless else 0)
         page = browser.new_page()
         try:
             # Step 1: open search
@@ -177,43 +183,80 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
             log_action(seq=seq, step=3, action="extract", target="cheapest", confidence=0.95,
                        signals=["selector", "text"], state_before_hash="", state_after_hash="",
                        duration_ms=0, result=f"ok:{cheapest['name']}:{cheapest['price']}")
-            # Step 4: site B delivery check within 3 days (approval gate: submit-like)
-            url2 = _url(base, "/site_b/check.html", perturb)
-            r3 = do_action(page, "goto", None, url2)
-            last_good = url2
-            seq += 1
-            log_action(seq=seq, step=4, action="goto", target="delivery_page", confidence=1.0,
-                       signals=["selector"], state_before_hash=r3["state_before_hash"], state_after_hash=r3["state_after_hash"],
-                       duration_ms=r3["duration_ms"], result=r3["result"], url=url2)
-            _emit_hash(seq, r3["state_before_hash"], "goto:delivery", r3["state_after_hash"])
-            page.wait_for_timeout(700 if perturb else 300)
-            page.fill('[data-testid="pin-input"]', pin)
-            t4 = Target(selector='[data-testid="check-button"]', role="button", name="Check Delivery", text="Check Delivery", landmark="main")
-            g4, rec4 = _ground_or_recover(page, t4, 4, "check_button", seq, last_good, stats)
-            if g4 is None:
-                return {"status": "ABSTAIN", "reason": "LOW_CONFIDENCE check_button unrecoverable"}
-            if auto_approve:
-                ok = require_approval(url2, "check_delivery_submit", {"pin": pin}, auto="grant")
-            else:
-                ok = require_approval_browser(page, url2, "check_delivery_submit", {"pin": pin})
-            if not ok:
-                return {"status": "ABSTAIN", "reason": "APPROVAL_DENIED"}
-            r4 = do_action(page, "click", g4.locator)
-            seq += 1
-            log_action(seq=seq, step=4, action="click", target="check_button", confidence=g4.confidence,
-                       signals=g4.signals_used, state_before_hash=r4["state_before_hash"], state_after_hash=r4["state_after_hash"],
-                       duration_ms=r4["duration_ms"], result=r4["result"])
-            _emit_hash(seq, r4["state_before_hash"], "click:check", r4["state_after_hash"])
-            page.wait_for_timeout(3000 if perturb else 400)
-            ok4, obs4 = det.check_post(page, "delivery_status_visible")
-            if not ok4:
-                t_det = int(time.time() * 1000)
-                rr = rec.recover(page, trigger="postcondition_failed", expected="delivery_status_visible",
-                                 observed=obs4, target=t4, postcondition="delivery_status_visible",
-                                 last_good_url=last_good, detected_at_ms=t_det)
-                _record(stats, rr, t_det)
+            # Step 4: site B delivery check per candidate (LOOP, not hop).
+            # Approval covers the workflow's submit-like intent once, up front.
+            from urllib.parse import quote as _quote
+
+            def _site_b_url(product: str | None) -> str:
+                q = []
+                if perturb:
+                    q.append(f"perturb={perturb}")
+                if product:
+                    q.append(f"product={_quote(product)}")
+                return base + "/site_b/check.html" + ("?" + "&".join(q) if q else "")
+
+            ranked = sorted(eligible, key=lambda c: c["price"])[:3]
+            chosen, status_text, url2, attempts = None, "", _site_b_url(None), []
+            for i, cand in enumerate(ranked):
+                url2 = _site_b_url(cand["name"])
+                r3 = do_action(page, "goto", None, url2)
+                last_good = url2
+                seq += 1
+                log_action(seq=seq, step=4, action="goto", target="delivery_page", confidence=1.0,
+                           signals=["selector"], state_before_hash=r3["state_before_hash"], state_after_hash=r3["state_after_hash"],
+                           duration_ms=r3["duration_ms"], result=r3["result"], url=url2,
+                           candidate=cand["name"], attempt=i + 1)
+                _emit_hash(seq, r3["state_before_hash"], f"goto:delivery:{cand['name']}", r3["state_after_hash"])
+                page.wait_for_timeout(700 if perturb else 300)
+                page.fill('[data-testid="pin-input"]', pin)
+                t4 = Target(selector='[data-testid="check-button"]', role="button", name="Check Delivery", text="Check Delivery", landmark="main")
+                g4, rec4 = _ground_or_recover(page, t4, 4, "check_button", seq, last_good, stats)
+                if g4 is None:
+                    return {"status": "ABSTAIN", "reason": "LOW_CONFIDENCE check_button unrecoverable"}
+                if i == 0:
+                    if auto_approve:
+                        ok = require_approval(url2, "check_delivery_submit", {"pin": pin}, auto="grant")
+                    else:
+                        ok = require_approval_browser(page, url2, "check_delivery_submit", {"pin": pin})
+                    if not ok:
+                        return {"status": "ABSTAIN", "reason": "APPROVAL_DENIED"}
+                r4 = do_action(page, "click", g4.locator)
+                seq += 1
+                log_action(seq=seq, step=4, action="click", target="check_button", confidence=g4.confidence,
+                           signals=g4.signals_used, state_before_hash=r4["state_before_hash"], state_after_hash=r4["state_after_hash"],
+                           duration_ms=r4["duration_ms"], result=r4["result"], candidate=cand["name"])
+                _emit_hash(seq, r4["state_before_hash"], "click:check", r4["state_after_hash"])
+                page.wait_for_timeout(3000 if perturb else 400)
                 ok4, obs4 = det.check_post(page, "delivery_status_visible")
-            status_text = page.inner_text('[data-testid="delivery-status"]') or ""
+                if not ok4:
+                    t_det = int(time.time() * 1000)
+                    rr = rec.recover(page, trigger="postcondition_failed", expected="delivery_status_visible",
+                                     observed=obs4, target=t4, postcondition="delivery_status_visible",
+                                     last_good_url=last_good, detected_at_ms=t_det)
+                    _record(stats, rr, t_det)
+                    ok4, obs4 = det.check_post(page, "delivery_status_visible")
+                status_text = page.inner_text('[data-testid="delivery-status"]') or ""
+                ok_deliv = deliverable_within_days(status_text)
+                attempts.append({"candidate": cand["name"], "price": cand["price"],
+                                 "deliverable": ok_deliv, "observed": status_text.strip()[:80]})
+                log_action(seq=seq, step=4, action="delivery_verdict", target=cand["name"],
+                           confidence=1.0, signals=["text"], state_before_hash="", state_after_hash="",
+                           duration_ms=0, result=f"deliverable={ok_deliv}")
+                if i > 0:
+                    stats["extra"].append(1)  # fallback candidate = genuine extra step
+                if ok_deliv:
+                    chosen = cand
+                    break
+                log_action(event="LOOP_FALLBACK", reason=f"{cand['name']} not deliverable",
+                           next="next-cheapest eligible")
+            if chosen is None:
+                log_action(event="ABSTAIN", reason="no_deliverable_candidate",
+                           constraint="b_confirms_deliverable_3d", attempts=str(attempts))
+                return {"status": "ABSTAIN", "failed_constraint": "b_confirms_deliverable_3d",
+                        "attempts": attempts, "plan": plan.to_dict(),
+                        "effective_params": {"budget": budget, "ram": ram, "pin": pin},
+                        "variant": variant, "perturb": perturb}
+            cheapest = chosen
             html_b = page.content()
             snippet_b = status_text.strip().split("\n")[0] if status_text.strip() else "delivery-status"
             ev2 = make_claim(f"Site B confirms deliverable within 3 days to PIN {pin}: {status_text.strip()}", url2, html_b, snippet_b, action_log_ref=seq)
@@ -227,6 +270,7 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
             dtct = stats["detect"]
             out = {"status": "pass" if verdict["decision"] == "proceed" else "ABSTAIN",
                    "cheapest": cheapest, "delivery": status_text.strip(),
+                   "delivery_attempts": attempts,
                    "evidence": evidences, "constraints": verdict,
                    "plan": plan.to_dict(),
                    "effective_params": {"budget": budget, "ram": ram, "pin": pin},
@@ -236,9 +280,24 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                    "elapsed_ms": int((time.time() - t_start) * 1000),
                    "variant": variant, "perturb": perturb}
             _record_trial(variant, perturb, out["status"] == "pass", seq, total_extra, out["avg_time_to_heal_ms"])
+            _write_live({"run_id": f"v{variant}/{perturb or 'clean'}", "step": "4/4",
+                         "status": out["status"], "extra_steps": total_extra,
+                         "detect_ms": out["avg_time_to_detect_ms"],
+                         "heal_ms": out["avg_time_to_heal_ms"],
+                         "elapsed_ms": out["elapsed_ms"]})
+            stage("metric", f"METRIC detect={out['avg_time_to_detect_ms']}ms heal={out['avg_time_to_heal_ms']}ms "
+                            f"extra={total_extra} status={out['status']}")
             return out
         finally:
             browser.close()
+
+def _write_live(state: dict):
+    """Live banner state for the metrics page. Best-effort; never fails a run."""
+    try:
+        state["ts"] = int(time.time() * 1000)
+        pathlib.Path("logs/live.json").write_text(json.dumps(state), encoding="utf-8")
+    except Exception:
+        pass
 
 def _record_trial(variant, perturb, success: bool, steps: int, extra: int, heal_ms: int):
     try:

@@ -1,5 +1,27 @@
 # DECISIONS
 
+## Index (find anything in 10 seconds)
+1. webcmd kill-gate PASSED — mandatory substrate, adapters verified live
+2. tau=0.70 confidence gate — initial, calibrate on variants
+3. CHAOS second-agent KILLED — scope/trope/dilution
+4. Reframe: recovery engine, not a shopper
+5. Env gate → passed (Python 3.11.9 installed)
+6. Evidence board killed → plain evidence.html; modal approval; recovery-cost metric
+7. Variant 1 verified (first green run)
+8. Phase 2 done (chaos transport, detector, ladder, v4 green)
+9. False-negative catch: broken chaos.js faked a pass (VERIFICATION CATCH 1)
+10. Metric honesty: detect = polling cadence, heal = reasoning
+11. Concurrent-edit incident → mock-contract tests (process catch)
+12. Planner gate verified (incl. medicine refusal)
+13. v2 narrative: guard rejected our lesson, fixed checker, re-proposed, ACCEPTED
+14. Negative-match test infrastructure (VERIFICATION CATCH 3)
+15. v5 credibility PASS on real site
+16. Clock delta 42%, no token claims
+17. Jitter x5 green (5/5, +2 each)
+18. Emoji evidence snippet fix (VERIFICATION CATCH 4)
+19. One-driver rule + frozen demo copy
+20. Venue boxes (TODO at venue)
+
 - 2026-09-12: webcmd kill-gate PASSED (mandatory per rules): npm @agentrhq/webcmd 0.8.4, CloakBrowser 146 + doctor binary OK (daemon starts on browser commands), skills in repo (.agents/skills). Site-memory rejects localhost ("Invalid product hostname") so memory loop is N/A for mocks; learn layer = authored adapters voltkart/search + swiftship/check, both verified live. Sandbox lesson: adapter page = goto/evaluate/screenshot only, no locators (probed). Sources in adapters/.
 - 2026-09-12: tau=0.70 initial, calibrate on practiced variants.
 - 2026-09-12: CHAOS adversary agent KILLED (jury call): doubles 6-8h scope, "red vs blue" is a trope, dilutes Task/Adaptation/Recovery (60 pts). Adversary = judge with console. Only.

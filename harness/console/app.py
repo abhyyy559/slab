@@ -31,6 +31,17 @@ JOB_TIMEOUT_MS = 600_000
 MAX_JOBS = 25
 HISTORY = LOG_DIR / "dashboard-runs.jsonl"
 HISTORY_MAX = 200
+HOLD_MS = 150          # trace settle window before an event is released to the browser
+
+# Import the plan layer directly: the rail must not depend on tailing shared log files, which
+# is racy for jobs that finish between polls (a refused goal never launches a browser at all).
+# Same function the agent uses, so the two cannot disagree.
+sys.path.insert(0, str(ROOT))
+try:
+    from agent.planner import plan_goal as _plan_goal
+    _PLANNER_ERROR = None
+except Exception as e:          # never let the dashboard die because of an import
+    _plan_goal, _PLANNER_ERROR = None, f"{type(e).__name__}: {e}"
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
@@ -134,9 +145,17 @@ def _argv(action: str, p: dict) -> list:
     raise ValueError(f"unknown action {action!r}")
 
 
-def _drain(job: dict, offsets: dict, q: queue.Queue) -> None:
-    """Tail the jsonl logs from the captured offsets; only consume newline-terminated bytes."""
+def _drain(job: dict, offsets: dict, q: queue.Queue, force: bool = False) -> None:
+    """Tail the jsonl logs, merging across files by timestamp.
+
+    Reading file-by-file and emitting immediately would reorder the trace: within one poll
+    cycle every actions.jsonl line would precede every recoveries.jsonl line regardless of
+    real time, so a recovery written *before* a step's own action would arrive after it and
+    be attributed to the wrong step. We buffer, sort by `ts`, and only emit events that have
+    had HOLD_MS to settle so a late-written earlier event can still merge ahead of them.
+    """
     counts = job.setdefault("counts", {})
+    buf = job.setdefault("buf", [])
     for name in TRACE_FILES:
         path = LOG_DIR / name
         try:
@@ -166,9 +185,19 @@ def _drain(job: dict, offsets: dict, q: queue.Queue) -> None:
                 ev = json.loads(raw)
             except ValueError:
                 continue
-            counts[name] = counts.get(name, 0) + 1
-            q.put({"kind": "trace", "file": name, "event": ev,
-                   "ts": ev.get("ts") or _now_ms()})
+            buf.append((ev.get("ts") or _now_ms(), name, ev))
+
+    if force:
+        # End of job: release everything still inside the settle window. Dropping these would
+        # lose the tail of short runs (a refused goal finishes before its events age out).
+        ready, job["buf"] = sorted(buf, key=lambda t: t[0]), []
+    else:
+        cutoff = _now_ms() - HOLD_MS
+        ready = sorted([e for e in buf if e[0] < cutoff], key=lambda t: t[0])
+        job["buf"] = [e for e in buf if e[0] >= cutoff]
+    for ts, name, ev in ready:
+        counts[name] = counts.get(name, 0) + 1
+        q.put({"kind": "trace", "file": name, "event": ev, "ts": ts})
 
 
 def _run_job(job: dict) -> None:
@@ -193,6 +222,20 @@ def _run_job(job: dict) -> None:
 
     q.put({"kind": "meta", "job": job["id"], "action": job["action"], "goal": goal,
            "argv": job["argv"], "ts": _now_ms()})
+
+    if job["action"] == "run" and _plan_goal is not None:
+        workflow = pathlib.Path("commands/phone_delivery_check.json").stem
+        cmd_path = ROOT / "commands" / f"{workflow}.json"
+        try:
+            if cmd_path.exists():
+                workflow = json.loads(cmd_path.read_text(encoding="utf-8")).get("workflow") or workflow
+        except Exception:
+            pass
+        try:
+            plan = _plan_goal(goal, workflow)
+            q.put({"kind": "plan", "plan": plan.to_dict(), "ts": _now_ms()})
+        except Exception as e:
+            q.put({"kind": "plan_error", "text": f"{type(e).__name__}: {e}"})
 
     try:
         proc = subprocess.Popen(job["argv"], cwd=str(ROOT), stdout=subprocess.PIPE,
@@ -226,7 +269,7 @@ def _run_job(job: dict) -> None:
             break
         time.sleep(0.15)
 
-    _drain(job, offsets, q)
+    _drain(job, offsets, q, force=True)   # settle is over: emit everything, in ts order
     reader_done.wait(timeout=5)
 
     text = "\n".join(job["stdout"])
@@ -269,6 +312,7 @@ def _summarize(job: dict) -> dict:
         "returncode": job.get("returncode"),
         "recoveries": counts.get("recoveries.jsonl", 0),
         "result_status": res.get("status"),
+        "failed_constraint": res.get("failed_constraint"),
         "extra_steps": res.get("extra_steps"),
         "detect_ms": res.get("avg_time_to_detect_ms"),
         "heal_ms": res.get("avg_time_to_heal_ms"),
@@ -286,6 +330,7 @@ def _latest_job():
 
 
 def _start_job(action: str, params: dict, goal: str) -> dict:
+    params = {**params, "goal": goal}      # so _argv can never disagree with job["goal"]
     job = {"id": f"{action}-{_now_ms()}", "action": action, "params": params, "goal": goal,
            "argv": _argv(action, params), "q": queue.Queue(), "status": "running",
            "started": _now_ms(), "ended": None, "result": None, "stdout": [], "proc": None}
@@ -301,6 +346,20 @@ def _start_job(action: str, params: dict, goal: str) -> dict:
 @app.get("/")
 def idx():
     return send_from_directory(app.static_folder, "index.html")
+
+
+@app.get("/live")
+def live_page():
+    return send_from_directory(app.static_folder, "live.html")
+
+
+@app.get("/api/live")
+def api_live():
+    try:
+        return jsonify(json.loads((LOG_DIR / "live.json").read_text(encoding="utf-8")))
+    except Exception:
+        return jsonify({"run_id": "-", "step": "-", "status": "idle",
+                        "detect_ms": 0, "heal_ms": 0, "extra_steps": 0, "elapsed_ms": 0})
 
 
 @app.get("/api/state")

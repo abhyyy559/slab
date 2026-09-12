@@ -127,6 +127,28 @@
   .verdict.abstain { color:var(--amber); background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.3); }
   .verdict.fail { color:var(--red); background:rgba(248,113,113,.1); border:1px solid rgba(248,113,113,.3); }
   .hint { font-size:11.5px; color:var(--dim); margin-top:10px; }
+
+  /* plan rail */
+  .rail { display:flex; align-items:center; gap:7px; flex-wrap:wrap; background:var(--panel2);
+          border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:12px; }
+  .rail .rl { font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.9px; }
+  .pstep { display:flex; align-items:center; gap:7px; border:1px solid var(--line); border-radius:20px;
+           padding:5px 11px; background:#0b1424; font-size:12.5px; color:var(--muted); transition:border-color .2s; }
+  .pstep .idx { width:17px; height:17px; border-radius:50%; background:rgba(139,154,181,.3); color:#0a1020;
+                display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; flex-shrink:0; }
+  .pstep .meta { font-size:11px; color:var(--dim); }
+  .pstep.active { border-color:var(--blue); color:var(--ink); box-shadow:0 0 0 3px rgba(96,165,250,.12); }
+  .pstep.active .idx { background:var(--blue); }
+  .pstep.done { border-color:rgba(52,211,153,.5); color:var(--green); }
+  .pstep.done .idx { background:var(--green); }
+  .pstep.healed { border-color:rgba(167,139,250,.6); }
+  .pstep.skipped { border-color:rgba(248,113,113,.45); color:var(--red); opacity:.85; }
+  .pstep.skipped .idx { background:var(--red); }
+  .pstep .hb { font-size:10.5px; color:var(--purple); border:1px solid rgba(167,139,250,.45);
+               border-radius:20px; padding:0 6px; }
+  .arrow { color:var(--dim); font-size:12px; }
+  .rail.refused { border-color:rgba(248,113,113,.5); color:var(--red); font-size:12.5px; }
+  .rail.refused b { color:var(--red); }
 </style>
 </head>
 <body>
@@ -225,6 +247,7 @@
     <section class="panel">
       <h2>Live trace</h2>
       <p class="sub">Streamed from <code>logs/*.jsonl</code> + stdout. Times are ms since the job started.</p>
+      <div id="planrail"></div>
       <div class="jobbar" id="jobbar"></div>
       <div id="timeline"></div>
       <details class="raw"><summary>raw stdout</summary><pre class="raw" id="raw">—</pre></details>
@@ -338,6 +361,8 @@ function begin(id, argv) {
   $("#timeline").innerHTML = "";
   $("#result").innerHTML = "";
   $("#raw").textContent = "—";
+  planState = null; activeStep = -1; pendingHeals = []; jobAction = null;
+  renderPlan();
   setRunning(true);
   traceLine({ cls: "step", icon: "▸", name: "started " + id, detail: (argv || []).join(" ") });
 
@@ -351,7 +376,7 @@ function handle(m) {
   if (m.kind === "stdout") return appendRaw(m.text);
   if (m.kind === "trace") return renderTrace(m);
   if (m.kind === "error") return traceLine({ cls: "err", icon: "✖", name: "error", detail: esc(m.text) });
-  if (m.kind === "result") return renderResult(m.result, m.status);
+  if (m.kind === "result") { finishPlan(m.result); return renderResult(m.result, m.status); }
   if (m.kind === "done") finish();
 }
 
@@ -398,6 +423,7 @@ function confChip(c) {
 function renderTrace(m) {
   const ev = m.event || {}, f = m.file, ts = m.ts;
   if (f === "recoveries.jsonl") {
+    markHeal(ev);
     const steps = (ev.steps || []).length ? (ev.steps || []).join(", ") : "none";
     return traceLine({ cls: "rec", icon: "✚", name: "RECOVERY · " + esc(ev.trigger), ts,
       detail: 'expected <code>' + esc(ev.expected) + '</code> · observed <code>' + esc(ev.observed) + '</code><br>'
@@ -423,6 +449,7 @@ function renderTrace(m) {
   }
   // actions.jsonl
   if (ev.event === "PLAN") {
+    initPlan(ev);
     const ok = ev.supported !== false;
     const ps = Object.entries(ev.params || {}).map(([k, v]) => k + "=" + v).join(", ") || "command defaults";
     const head = ok ? "params <b>" + esc(ps) + "</b>" : "<b>refused:</b> " + esc((ev.unsupported || []).join("; "));
@@ -449,6 +476,7 @@ function renderTrace(m) {
     return traceLine({ cls: "abst", icon: "⊘", name: "ABSTAIN", ts, detail: "reason " + esc(ev.reason) + (ev.constraint ? " · failed constraint <b>" + esc(ev.constraint) + "</b>" : "") });
   }
   if (ev.action) {
+    markStep(ev);
     const sigs = (ev.signals || []).map(s => '<span class="sig">' + esc(s) + '</span>').join("");
     const low = ev.result && String(ev.result).indexOf("LOW_CONFIDENCE") >= 0;
     return traceLine({ cls: "step", icon: low ? "⚠" : "•", ts,
@@ -467,8 +495,10 @@ function appendRaw(line) {
 }
 
 function renderJobbar(m) {
+  jobAction = m.action;
   $("#jobbar").innerHTML = '<div class="id mono">' + esc(m.job) + '</div>'
     + '<div class="metric"><b>' + esc(m.action) + '</b><span>action</span></div>';
+  renderPlan();
 }
 
 function kv(rows) {
@@ -538,6 +568,122 @@ function renderResult(res, status) {
   box.innerHTML = html;
 }
 
+/* ----------------------------------------------------------------- plan rail */
+const STEP_LABEL = { open_search:"open search", apply_filter:"apply filter",
+                     extract_cheapest:"extract cheapest", check_delivery:"check delivery" };
+const STEP_SITE  = { open_search:"A", apply_filter:"A", extract_cheapest:"A", check_delivery:"B" };
+// Which action actually completes each step. Site B's goto is navigation, not completion --
+// its step only finishes on the click -- so we cannot treat every non-ground action as terminal.
+const STEP_TERMINAL = { open_search:"goto", apply_filter:"click",
+                        extract_cheapest:"extract", check_delivery:"click" };
+let planState = null, activeStep = -1, pendingHeals = [], jobAction = null;
+
+function initPlan(ev) {
+  // A guard/bump job runs the agent several times internally, so its nested PLAN events would
+  // thrash the rail. Only single `run` jobs drive it.
+  if (jobAction !== "run") return;
+  planState = {
+    unsupported: ev.supported === false,
+    reason: (ev.unsupported || []).join("; "),
+    params: ev.params || {}, workflow: ev.workflow || "", origin: "live",
+    steps: (ev.steps || []).map(s => ({ intent: s, state: "pending", conf: null, heals: [], result: null })),
+  };
+  activeStep = -1;
+  pendingHeals = [];
+  renderPlan();
+}
+
+// Recovery events are logged *before* the step's own action on the overlay path and *after*
+// it on the low-confidence path, so we attach each one to the next step event that follows.
+// That lands on the right step in both cases (verified against logs/actions.jsonl ordering).
+function markHeal(ev) {
+  if (!planState || planState.unsupported) return;
+  pendingHeals.push({ strategy: ev.strategy || "recover", extra: (ev.steps || []).length,
+                      detect: ev.time_to_detect_ms, heal: ev.time_to_heal_ms });
+}
+
+function markStep(ev) {
+  if (!planState || planState.unsupported) return;
+  const i = (ev.step || 1) - 1, st = planState.steps[i];
+  if (!st) return;
+  if (pendingHeals.length) { st.heals.push.apply(st.heals, pendingHeals); pendingHeals = []; }
+  if (ev.action === "ground") {
+    if (ev.confidence !== undefined) st.conf = ev.confidence;
+    if (st.state !== "done") st.state = "active";   // a later ground must not un-complete a step
+  } else {
+    st.result = ev.result;
+    if (STEP_TERMINAL[st.intent] === ev.action) st.state = "done";
+    else if (st.state !== "done") st.state = "active";
+  }
+  activeStep = i;
+  renderPlan();
+}
+
+function finishPlan(res) {
+  if (!planState || planState.unsupported) return;
+  if (pendingHeals.length && activeStep >= 0) {          // heal with no following step event
+    planState.steps[activeStep].heals.push.apply(planState.steps[activeStep].heals, pendingHeals);
+  }
+  pendingHeals = [];
+  // A passing run completed every planned step; otherwise only the steps with a completed
+  // terminal action are done, and the rest were genuinely never reached.
+  const ok = !!res && res.status === "pass";
+  planState.steps.forEach(s => { if (s.state !== "done") s.state = ok ? "done" : "skipped"; });
+  renderPlan();
+}
+
+function planFromResult(res) {                            // history: only the final plan is stored
+  const p = res && res.plan;
+  if (!p) { planState = null; renderPlan(); return; }
+  const ok = res.status === "pass";
+  planState = {
+    unsupported: p.supported === false,
+    reason: (p.unsupported || []).join("; "),
+    params: p.params || {}, workflow: p.workflow || "", origin: "history",
+    steps: (p.steps || []).map(s => ({ intent: s.intent, state: ok ? "done" : "skipped",
+                                       conf: null, heals: [], result: null })),
+  };
+  activeStep = -1;
+  pendingHeals = [];
+  renderPlan();
+}
+
+function renderPlan() {
+  const box = $("#planrail");
+  if (!box) return;
+  if (!planState) {
+    box.innerHTML = (jobAction && jobAction !== "run")
+      ? '<div class="rail"><span class="rl">plan</span><span class="meta">a ' + esc(jobAction)
+        + " job executes several agent runs internally - the plan rail tracks single runs only</span></div>"
+      : "";
+    return;
+  }
+  if (planState.unsupported) {
+    box.innerHTML = '<div class="rail refused"><b>PLAN REFUSED</b>&nbsp; '
+      + esc(planState.reason || "goal did not map to a known workflow")
+      + '<span class="meta" style="margin-left:auto">running nothing</span></div>';
+    return;
+  }
+  const ps = Object.entries(planState.params).map(([k, v]) => k + "=" + v).join(", ") || "command defaults";
+  let html = '<div class="rail"><span class="rl">plan</span>';
+  html += planState.steps.map((s, i) => {
+    let meta = "";
+    if (s.state === "done" && s.result) meta = '<span class="meta">' + esc(String(s.result).slice(0, 20)) + "</span>";
+    else if (s.conf !== null && s.conf !== undefined) meta = '<span class="meta">conf ' + s.conf.toFixed(2) + "</span>";
+    const hb = s.heals.length
+      ? '<span class="hb" title="' + esc(s.heals.map(h => h.strategy + " (+" + h.extra + " steps, detect "
+          + h.detect + "ms, heal " + h.heal + "ms)").join(" | "))
+        + '">healed x' + s.heals.length + "</span>" : "";
+    return '<div class="pstep ' + s.state + (s.heals.length ? " healed" : "") + '">'
+      + '<span class="idx">' + (i + 1) + "</span>"
+      + "<span>" + esc(STEP_LABEL[s.intent] || s.intent) + '<span class="meta"> site ' + esc(STEP_SITE[s.intent] || "?") + "</span></span>"
+      + meta + hb + "</div>";
+  }).join('<span class="arrow">&rarr;</span>');
+  html += '<span class="rl" style="margin-left:auto">params ' + esc(ps) + "</span>";
+  if (planState.origin === "history") html += '<span class="meta">final state from history (per-step timing not stored)</span>';
+  box.innerHTML = html + "</div>";
+}
+
 /* ------------------------------------------------------------------ history */
 async function refreshHistory() {
   try {
@@ -582,6 +728,7 @@ function renderHistory(runs) {
     try {
       const rec = await (await fetch("/api/history/" + row.dataset.id)).json();
       if (rec && rec.result) {
+        planFromResult(rec.result);
         renderResult(rec.result, rec.status);
         $("#result").scrollIntoView({ behavior: "smooth", block: "start" });
       }

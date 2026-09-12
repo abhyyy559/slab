@@ -21,15 +21,23 @@ python -m agent run --goal "Find the cheapest in-stock option on Site A that Sit
 
 ## Architecture
 ```
-NL goal -> planner -> commands/*.json -> replayer -> executor (Playwright)
-                          |                |-> grounder (5-signal confidence, tau=0.70)
-                          |                |-> detector (ChangeDetected) -> recovery (re-locate/re-plan/backtrack)
-                          |-> evidence (extractive snippets) -> evidence.html (plain table, generated)
-                          |-> constraints (pass/fail/unsat + ABSTAIN) -> approval gate (browser modal; CLI fallback)
-                          |-> logger (actions/recoveries/hashes/metrics). learner/reflect: CUT from pitch (stubs).
-Judge console + dashboard: `harness/console` (localhost:8765) injects shuffle/rename/modal/extra_step/throttle/composite **and** runs the agent with a live step trace. Open http://127.0.0.1:8765 for scenario presets, parameter overrides, a headed/approval toggle, a step-by-step timeline tailed from `logs/*.jsonl`, and the result card. The agent runs as a subprocess (Playwright's sync API cannot run inside a Flask worker thread). The task box is parsed by `planner.plan_goal()` into budget / RAM / PIN and mapped to a workflow, logged as a `PLAN` event; explicit parameters override it, and unknown domains ABSTAIN with `unsupported_goal` rather than silently running the phone workflow. One workflow only — see FAILURES.md.
-Mocks: mocks/site_a (search/filter/results/product), mocks/site_b (PIN delivery check).
+ goal (NL)
+  └─ planner.plan_goal() ── unsupported? ──→ ABSTAIN(unsupported_goal)
+  └─ commands/phone_delivery_check.json (v1, learned_by: webcmd)
+  └─ replayer ── executor (Playwright, headed slow_mo on stage)
+       ├─ grounder: selector .35 + role_name .25 + text .20 + visual .10 + landmark .10 → conf ≥ τ=0.70
+       ├─ detector: scan (modal/extra-step/rename/error) + check_post per step
+       ├─ recovery: re-plan (dismiss) → re-locate (synonym re-ground) → backtrack → verify
+       ├─ step 5 loop: Site B checks candidates cheapest-first (?product=), fallback or ABSTAIN
+       ├─ evidence: verbatim snippet + URL + char_offset + sha256 → evidence.html
+       ├─ constraints: pass/unsat → ABSTAIN names the failed constraint
+       ├─ approval: browser modal (teammate clicks) / CLI fallback
+       └─ logger: actions.jsonl · recoveries.jsonl · replay-hashes.jsonl · metrics.json · live.json
+            → reflect: guard v1..v6 → ACCEPT (+1) / REJECT / rollback (.history/) → versions.jsonl
+ judge console :8765 ── chaos.js (600ms poll) or ?perturb= ──→ page mutates
+ webcmd substrate: adapters/voltkart+swiftship (learn once) · skills in .agents/
 ```
+Entry: `python -m agent --help`. Frozen demo copy: `%LOCALAPPDATA%\sentry-demo` (no sync).
 
 ## Models / APIs used
 - Planner/grounding assist: (declare here, e.g. `none/keyless-first` or `model: <name>`). No LLM in hot replay loop.
@@ -51,10 +59,10 @@ Definitions (say verbatim if probed): detect_ms = DOM mutation → next scan (po
 ## Failure table (honest, updated per run — full list in FAILURES.md)
 | Failure | Handling | Status |
 |---|---|---|
-| Element renamed/moved | re-ground (5-signal, tau=0.70), log Recovery | built, unverified (no Python here) |
-| Unexpected modal / extra step | dismiss / confirm, verify postcondition | planned Phase 2 |
-| Load timeout | 3s cap, snapshot fallback | built, unverified |
-| No eligible result | ABSTAIN naming failed constraint | built, unverified |
+| Element renamed/moved | re-ground (5-signal, tau=0.70), log Recovery | VERIFIED (v4, jitter 5/5) |
+| Unexpected modal / extra step | dismiss / confirm, verify postcondition | VERIFIED (v4, +2 extra) |
+| Load timeout | 3s cap, snapshot fallback | VERIFIED (throttle absorbed, v4 green) |
+| No eligible result | ABSTAIN naming failed constraint | VERIFIED (v6) |
 | Open-domain transfer | not supported (same-family only) | published limitation |
 | Baseline uses stable `data-testid`; perturbed run strips them | say so on stage | policy |
 
