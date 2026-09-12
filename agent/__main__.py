@@ -11,6 +11,11 @@ def cmd_run(a):
         print("\nEVIDENCE TABLE")
         for e in out.get("evidence", []):
             print(f"- {e['claim']}\n  url={e['url']} off={e['char_offset']} sha={e['sha256'][:12]}...")
+        if out.get("avg_time_to_heal_ms", 0) > 0:
+            from .reflect import reflect_on_run
+            reflect_result = reflect_on_run()
+            print("\nREFLECT")
+            print(json.dumps(reflect_result, indent=2))
     elif out.get("status") == "ABSTAIN":
         print(f"\nABSTAIN: refused correctly. failed_constraint={out.get('failed_constraint', out.get('reason'))}")
     return 0 if out.get("status") == "pass" else 2
@@ -31,6 +36,7 @@ def main():
     l = sub.add_parser("learn")
     l.add_argument("--goal", default="")
     l.add_argument("--site", default="site_a")
+    l.add_argument("--base", default="http://127.0.0.1:8000")
     l.add_argument("--out", default="commands/phone_delivery_check.json")
     rb = sub.add_parser("rollback")
     rb.add_argument("--workflow", default="phone_delivery_check")
@@ -39,8 +45,8 @@ def main():
     if a.cmd == "run":
         raise SystemExit(cmd_run(a))
     if a.cmd == "learn":
-        from .learner import learn_stub
-        learn_stub(a.goal, a.site, a.out)
+        from .learner import learn
+        learn(goal=a.goal, site=a.site, out=a.out, base=a.base)
         return
     if a.cmd == "rollback":
         from .reflect import rollback

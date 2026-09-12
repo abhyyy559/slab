@@ -12,7 +12,7 @@
       "claim": "Cheapest phone >= 8GB under Rs 20000 is Pixel Lite 8GB at Rs 18999",
       "url": "http://127.0.0.1:8000/site_a/search.html?perturb=composite",
       "snippet_verbatim": "\ud83d\udcf1",
-      "char_offset": 4499,
+      "char_offset": 4522,
       "sha256": "2566561f81db7a7c4adb6cee3e93139155a6b01d52ff0d3d5c11648f46bc79bb",
       "action_log_ref": 2
     },
@@ -34,9 +34,9 @@
     "decision": "proceed"
   },
   "extra_steps": 2,
-  "avg_time_to_heal_ms": 191,
-  "avg_time_to_detect_ms": 3,
-  "elapsed_ms": 6610,
+  "avg_time_to_heal_ms": 4625,
+  "avg_time_to_detect_ms": 0,
+  "elapsed_ms": 89673,
   "variant": 4,
   "perturb": "composite"
 }

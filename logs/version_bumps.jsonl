@@ -1,0 +1,2 @@
+{"workflow": "phone_delivery_check", "from_version": 1, "to_version": 2, "timestamp": "2026-09-12T12:45:30.690982", "backup_path": "commands\\phone_delivery_check.v1.json", "recoveries_count": 9}
+{"workflow": "phone_delivery_check", "from_version": 1, "to_version": 2, "timestamp": "2026-09-12T13:17:48.492240", "backup_path": "commands\\phone_delivery_check.v1.json", "recoveries_count": 21}

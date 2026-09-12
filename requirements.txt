@@ -1,3 +1,5 @@
-playwright>=1.44.0
+# SENTRY / Track 01 Adaptive Browsing Requirements
+# Browser automation is powered exclusively by WebCMD (npm: webcmd v0.8.4+ with Cloak runtime)
 flask>=3.0.0
 pytest>=8.0.0
+

@@ -11,16 +11,28 @@ def _now() -> int:
 
 def clear_side_effects(page) -> list:
     """Re-plan level 0: dismiss confirm interstitial (topmost) then modal. Returns actions taken."""
-    taken = []
-    for overlay, btn in (("#chaos-confirm", "#chaos-continue"), ("#chaos-modal", "#chaos-dismiss")):
-        try:
-            if page.locator(overlay).count() >= 1 and page.locator(overlay).first.is_visible():
-                page.locator(btn).first.click(timeout=3000)
-                page.wait_for_timeout(300)
-                taken.append(f"dismissed:{overlay}")
-        except Exception:
-            pass
-    return taken
+    code = """() => {
+        const taken = [];
+        const confirm = document.getElementById('chaos-confirm');
+        if (confirm && (confirm.offsetWidth || confirm.offsetHeight || confirm.getClientRects().length)) {
+            const btn = document.getElementById('chaos-continue');
+            if (btn) { btn.click(); taken.push('dismissed:#chaos-confirm'); }
+        }
+        const modal = document.getElementById('chaos-modal');
+        if (modal && (modal.offsetWidth || modal.offsetHeight || modal.getClientRects().length)) {
+            const btn = document.getElementById('chaos-dismiss');
+            if (btn) { btn.click(); taken.push('dismissed:#chaos-modal'); }
+        }
+        return taken;
+    }"""
+    try:
+        res = page.evaluate(code)
+        if isinstance(res, list) and res:
+            page.wait_for_timeout(300)
+            return res
+    except Exception:
+        pass
+    return []
 
 def relocate(page, target: Target) -> object:
     """Re-locate with relaxed signals: drop selector (may be stripped), use synonym text."""
@@ -34,7 +46,7 @@ def relocate(page, target: Target) -> object:
             loc = page.get_by_text(SYNONYM_TEXT.get(target.text, target.text))
             if loc.count() >= 1:
                 from .grounder import Grounding
-                return Grounding(locator=loc.first, confidence=0.80,
+                return Grounding(locator=loc, confidence=0.80,
                                  signals_used=["text", "landmark"],
                                  detail={"fallback": "synonym_text_click"})
         except Exception:

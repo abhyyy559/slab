@@ -1,7 +1,7 @@
 """Replayer: executes command JSON against live mocks. Detect -> recover -> verify on every step."""
 import json, pathlib, time
 from .grounder import ground, Target, TAU
-from .executor import do_action, state_hash
+from .executor import do_action, state_hash, WebcmdSession
 from .logger import log_action, log_hash, log_recovery
 from .evidence import make_claim
 from .constraints import check as check_constraints
@@ -73,7 +73,6 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                 auto_approve: bool = True, headless: bool = True,
                 budget: int | None = None, ram: int | None = None,
                 pin: str | None = None) -> dict:
-    from playwright.sync_api import sync_playwright
     cmd = load_command(command_path)
     params = dict(cmd.get("params", {}))
     params["base"] = base
@@ -90,132 +89,134 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
     t_start = time.time()
     if perturb:
         log_action(event="PERTURB_INJECTED", target=perturb, seq=seq)
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=headless)
-        page = browser.new_page()
-        try:
-            # Step 1: open search
-            url1 = _url(base, "/site_a/search.html", perturb)
-            r = do_action(page, "goto", None, url1)
-            last_good = url1
-            seq += 1
-            log_action(seq=seq, step=1, action="goto", target="search_page", confidence=1.0,
-                       signals=["selector"], state_before_hash="", state_after_hash=r["state_after_hash"],
-                       duration_ms=r["duration_ms"], result=r["result"], url=url1)
-            _emit_hash(seq, "", "goto:search", r["state_after_hash"])
-            page.wait_for_timeout(700 if perturb else 300)  # let chaos.js apply
-            t = Target(selector='[data-testid="search-box"]', role="textbox", name="Search phones", text="Search phones", landmark="main")
-            g, rec_info = _ground_or_recover(page, t, 1, "search_box", seq, last_good, stats)
-            if g is None:
-                return {"status": "ABSTAIN", "reason": "LOW_CONFIDENCE search_box unrecoverable"}
-            # Step 2: apply filter
-            page.fill('[data-testid="max-price"]', str(budget))
-            page.fill('[data-testid="min-ram"]', str(ram))
-            t2 = Target(selector='[data-testid="apply-filter"]', role="button", name="Apply Filter", text="Apply Filter", landmark="main")
-            g2, rec2 = _ground_or_recover(page, t2, 2, "filter_button", seq, last_good, stats)
-            if g2 is None:
-                return {"status": "ABSTAIN", "reason": "LOW_CONFIDENCE filter_button unrecoverable"}
-            r2 = do_action(page, "click", g2.locator)
-            seq += 1
-            log_action(seq=seq, step=2, action="click", target="filter_button", confidence=g2.confidence,
-                       signals=g2.signals_used, state_before_hash=r2["state_before_hash"], state_after_hash=r2["state_after_hash"],
-                       duration_ms=r2["duration_ms"], result=r2["result"])
-            _emit_hash(seq, r2["state_before_hash"], "click:filter", r2["state_after_hash"])
-            ok2, obs2 = det.check_post(page, "results_filtered")
-            if not ok2:  # throttle delay or intercepted click: wait, clear overlays, retry once
-                t_det = int(time.time() * 1000)
-                page.wait_for_timeout(3000)
-                rr = rec.recover(page, trigger="postcondition_failed", expected="results_filtered",
-                                 observed=obs2, target=t2, postcondition="results_filtered",
-                                 last_good_url=last_good, detected_at_ms=t_det)
-                _record(stats, rr, t_det)
-                if not rr["verified"]:
-                    if rr["locator"] is not None:
-                        stats["extra"].append(1)  # retry click is a genuine extra step
-                        r2b = do_action(page, "click", rr["locator"])
-                        seq += 1
-                        _emit_hash(seq, r2b["state_before_hash"], "click:filter:retry", r2b["state_after_hash"])
-                        page.wait_for_timeout(3000)
-                    ok2, obs2 = det.check_post(page, "results_filtered")
-            # Step 3: extract cheapest meeting constraints (B must confirm within 3 days -> loop)
-            cards = page.evaluate("""() => [...document.querySelectorAll('[data-testid="product-card"], #chaos-results > article')]
-                .filter(c => c.style.display !== 'none')
-                .map(c => ({name: c.dataset.name, price: parseInt(c.dataset.price,10), ram: parseInt(c.dataset.ram,10),
-                            text: c.innerText}))""")
-            eligible = [c for c in cards if c["price"] <= budget and c["ram"] >= ram]
-            if not eligible:
-                log_action(event="ABSTAIN", reason="no_results", constraint="max_price AND min_ram")
-                return {"status": "ABSTAIN", "failed_constraint": "max_price AND min_ram", "cards": cards}
-            cheapest = min(eligible, key=lambda c: c["price"])
-            html_a = page.content()
-            cand = [cheapest["text"].split("\n")[0], f"Rs {cheapest['price']}"]
-            snippet = next((s for s in cand if s and s in html_a), cheapest["name"])
-            ev1 = make_claim(f"Cheapest phone >= {ram}GB under Rs {budget} is {cheapest['name']} at Rs {cheapest['price']}",
-                             url1, html_a, snippet, action_log_ref=seq)
-            evidences.append(ev1)
-            log_action(seq=seq, step=3, action="extract", target="cheapest", confidence=0.95,
-                       signals=["selector", "text"], state_before_hash="", state_after_hash="",
-                       duration_ms=0, result=f"ok:{cheapest['name']}:{cheapest['price']}")
-            # Step 4: site B delivery check within 3 days (approval gate: submit-like)
-            url2 = _url(base, "/site_b/check.html", perturb)
-            r3 = do_action(page, "goto", None, url2)
-            last_good = url2
-            seq += 1
-            log_action(seq=seq, step=4, action="goto", target="delivery_page", confidence=1.0,
-                       signals=["selector"], state_before_hash=r3["state_before_hash"], state_after_hash=r3["state_after_hash"],
-                       duration_ms=r3["duration_ms"], result=r3["result"], url=url2)
-            _emit_hash(seq, r3["state_before_hash"], "goto:delivery", r3["state_after_hash"])
-            page.wait_for_timeout(700 if perturb else 300)
-            page.fill('[data-testid="pin-input"]', pin)
-            t4 = Target(selector='[data-testid="check-button"]', role="button", name="Check Delivery", text="Check Delivery", landmark="main")
-            g4, rec4 = _ground_or_recover(page, t4, 4, "check_button", seq, last_good, stats)
-            if g4 is None:
-                return {"status": "ABSTAIN", "reason": "LOW_CONFIDENCE check_button unrecoverable"}
-            if auto_approve:
-                ok = require_approval(url2, "check_delivery_submit", {"pin": pin}, auto="grant")
-            else:
-                ok = require_approval_browser(page, url2, "check_delivery_submit", {"pin": pin})
-            if not ok:
-                return {"status": "ABSTAIN", "reason": "APPROVAL_DENIED"}
-            r4 = do_action(page, "click", g4.locator)
-            seq += 1
-            log_action(seq=seq, step=4, action="click", target="check_button", confidence=g4.confidence,
-                       signals=g4.signals_used, state_before_hash=r4["state_before_hash"], state_after_hash=r4["state_after_hash"],
-                       duration_ms=r4["duration_ms"], result=r4["result"])
-            _emit_hash(seq, r4["state_before_hash"], "click:check", r4["state_after_hash"])
-            page.wait_for_timeout(3000 if perturb else 400)
+
+    session_name = f"sentry-v{variant}-{int(time.time() * 1000)}"
+    with WebcmdSession(name=session_name) as session:
+        page = session.page
+        # Step 1: open search
+        url1 = _url(base, "/site_a/search.html", perturb)
+        r = do_action(page, "goto", None, url1)
+        last_good = url1
+        seq += 1
+        log_action(seq=seq, step=1, action="goto", target="search_page", confidence=1.0,
+                   signals=["selector"], state_before_hash="", state_after_hash=r["state_after_hash"],
+                   duration_ms=r["duration_ms"], result=r["result"], url=url1)
+        _emit_hash(seq, "", "goto:search", r["state_after_hash"])
+        page.wait_for_timeout(700 if perturb else 300)  # let chaos.js apply
+        t = Target(selector='[data-testid="search-box"]', role="textbox", name="Search phones", text="Search phones", landmark="main")
+        g, rec_info = _ground_or_recover(page, t, 1, "search_box", seq, last_good, stats)
+        if g is None:
+            return {"status": "ABSTAIN", "reason": "LOW_CONFIDENCE search_box unrecoverable"}
+        # Step 2: apply filter
+        page.fill('[data-testid="max-price"]', str(budget))
+        page.fill('[data-testid="min-ram"]', str(ram))
+        t2 = Target(selector='[data-testid="apply-filter"]', role="button", name="Apply Filter", text="Apply Filter", landmark="main")
+        g2, rec2 = _ground_or_recover(page, t2, 2, "filter_button", seq, last_good, stats)
+        if g2 is None:
+            return {"status": "ABSTAIN", "reason": "LOW_CONFIDENCE filter_button unrecoverable"}
+        r2 = do_action(page, "click", g2.locator)
+        seq += 1
+        log_action(seq=seq, step=2, action="click", target="filter_button", confidence=g2.confidence,
+                   signals=g2.signals_used, state_before_hash=r2["state_before_hash"], state_after_hash=r2["state_after_hash"],
+                   duration_ms=r2["duration_ms"], result=r2["result"])
+        _emit_hash(seq, r2["state_before_hash"], "click:filter", r2["state_after_hash"])
+        ok2, obs2 = det.check_post(page, "results_filtered")
+        if not ok2:  # throttle delay or intercepted click: wait, clear overlays, retry once
+            t_det = int(time.time() * 1000)
+            page.wait_for_timeout(3000)
+            rr = rec.recover(page, trigger="postcondition_failed", expected="results_filtered",
+                             observed=obs2, target=t2, postcondition="results_filtered",
+                             last_good_url=last_good, detected_at_ms=t_det)
+            _record(stats, rr, t_det)
+            if not rr["verified"]:
+                if rr["locator"] is not None:
+                    stats["extra"].append(1)  # retry click is a genuine extra step
+                    r2b = do_action(page, "click", rr["locator"])
+                    seq += 1
+                    _emit_hash(seq, r2b["state_before_hash"], "click:filter:retry", r2b["state_after_hash"])
+                    page.wait_for_timeout(3000)
+                ok2, obs2 = det.check_post(page, "results_filtered")
+        # Step 3: extract cheapest meeting constraints (B must confirm within 3 days -> loop)
+        cards = page.evaluate("""() => [...document.querySelectorAll('[data-testid="product-card"], #chaos-results > article')]
+            .filter(c => c.style.display !== 'none')
+            .map(c => ({name: c.dataset.name, price: parseInt(c.dataset.price,10), ram: parseInt(c.dataset.ram,10),
+                        text: c.innerText}))""")
+        eligible = [c for c in cards if c["price"] <= budget and c["ram"] >= ram]
+        if not eligible:
+            log_action(event="ABSTAIN", reason="no_results", constraint="max_price AND min_ram")
+            return {"status": "ABSTAIN", "failed_constraint": "max_price AND min_ram", "cards": cards}
+        cheapest = min(eligible, key=lambda c: c["price"])
+        html_a = page.content()
+        cand = [cheapest["text"].split("\n")[0], f"Rs {cheapest['price']}"]
+        snippet = next((s for s in cand if s and s in html_a), cheapest["name"])
+        ev1 = make_claim(f"Cheapest phone >= {ram}GB under Rs {budget} is {cheapest['name']} at Rs {cheapest['price']}",
+                         url1, html_a, snippet, action_log_ref=seq)
+        evidences.append(ev1)
+        log_action(seq=seq, step=3, action="extract", target="cheapest", confidence=0.95,
+                   signals=["selector", "text"], state_before_hash="", state_after_hash="",
+                   duration_ms=0, result=f"ok:{cheapest['name']}:{cheapest['price']}")
+        # Step 4: site B delivery check within 3 days (approval gate: submit-like)
+        url2 = _url(base, "/site_b/check.html", perturb)
+        r3 = do_action(page, "goto", None, url2)
+        last_good = url2
+        seq += 1
+        log_action(seq=seq, step=4, action="goto", target="delivery_page", confidence=1.0,
+                   signals=["selector"], state_before_hash=r3["state_before_hash"], state_after_hash=r3["state_after_hash"],
+                   duration_ms=r3["duration_ms"], result=r3["result"], url=url2)
+        _emit_hash(seq, r3["state_before_hash"], "goto:delivery", r3["state_after_hash"])
+        page.wait_for_timeout(700 if perturb else 300)
+        page.fill('[data-testid="pin-input"]', pin)
+        t4 = Target(selector='[data-testid="check-button"]', role="button", name="Check Delivery", text="Check Delivery", landmark="main")
+        g4, rec4 = _ground_or_recover(page, t4, 4, "check_button", seq, last_good, stats)
+        if g4 is None:
+            return {"status": "ABSTAIN", "reason": "LOW_CONFIDENCE check_button unrecoverable"}
+        if auto_approve:
+            ok = require_approval(url2, "check_delivery_submit", {"pin": pin}, auto="grant")
+        else:
+            ok = require_approval_browser(page, url2, "check_delivery_submit", {"pin": pin})
+        if not ok:
+            return {"status": "ABSTAIN", "reason": "APPROVAL_DENIED"}
+        r4 = do_action(page, "click", g4.locator)
+        seq += 1
+        log_action(seq=seq, step=4, action="click", target="check_button", confidence=g4.confidence,
+                   signals=g4.signals_used, state_before_hash=r4["state_before_hash"], state_after_hash=r4["state_after_hash"],
+                   duration_ms=r4["duration_ms"], result=r4["result"])
+        _emit_hash(seq, r4["state_before_hash"], "click:check", r4["state_after_hash"])
+        page.wait_for_timeout(3000 if perturb else 400)
+        ok4, obs4 = det.check_post(page, "delivery_status_visible")
+        if not ok4:
+            t_det = int(time.time() * 1000)
+            rr = rec.recover(page, trigger="postcondition_failed", expected="delivery_status_visible",
+                             observed=obs4, target=t4, postcondition="delivery_status_visible",
+                             last_good_url=last_good, detected_at_ms=t_det)
+            _record(stats, rr, t_det)
             ok4, obs4 = det.check_post(page, "delivery_status_visible")
-            if not ok4:
-                t_det = int(time.time() * 1000)
-                rr = rec.recover(page, trigger="postcondition_failed", expected="delivery_status_visible",
-                                 observed=obs4, target=t4, postcondition="delivery_status_visible",
-                                 last_good_url=last_good, detected_at_ms=t_det)
-                _record(stats, rr, t_det)
-                ok4, obs4 = det.check_post(page, "delivery_status_visible")
-            status_text = page.inner_text('[data-testid="delivery-status"]') or ""
-            html_b = page.content()
-            snippet_b = status_text.strip().split("\n")[0] if status_text.strip() else "delivery-status"
-            ev2 = make_claim(f"Site B confirms deliverable within 3 days to PIN {pin}: {status_text.strip()}", url2, html_b, snippet_b, action_log_ref=seq)
-            evidences.append(ev2)
-            within_days = "2-3 days" in status_text or "available" in status_text.lower()
-            verdict = check_constraints({"max_price": cheapest["price"] <= budget,
-                                         "min_ram": cheapest["ram"] >= ram,
-                                         "b_confirms_deliverable_3d": within_days})
-            total_extra = sum(stats["extra"])
-            heal = stats["heal"]
-            dtct = stats["detect"]
-            out = {"status": "pass" if verdict["decision"] == "proceed" else "ABSTAIN",
-                   "cheapest": cheapest, "delivery": status_text.strip(),
-                   "evidence": evidences, "constraints": verdict,
-                   "extra_steps": total_extra,
-                   "avg_time_to_heal_ms": (sum(heal) // len(heal)) if heal else 0,
-                   "avg_time_to_detect_ms": (sum(dtct) // len(dtct)) if dtct else 0,
-                   "elapsed_ms": int((time.time() - t_start) * 1000),
-                   "variant": variant, "perturb": perturb}
-            _record_trial(variant, perturb, out["status"] == "pass", seq, total_extra, out["avg_time_to_heal_ms"])
-            return out
-        finally:
-            browser.close()
+        status_text = page.inner_text('[data-testid="delivery-status"]') or ""
+        html_b = page.content()
+        snippet_b = status_text.strip().split("\n")[0] if status_text.strip() else "delivery-status"
+        ev2 = make_claim(f"Site B confirms deliverable within 3 days to PIN {pin}: {status_text.strip()}", url2, html_b, snippet_b, action_log_ref=seq)
+        evidences.append(ev2)
+        within_days = "2-3 days" in status_text or "available" in status_text.lower()
+        verdict = check_constraints({"max_price": cheapest["price"] <= budget,
+                                     "min_ram": cheapest["ram"] >= ram,
+                                     "b_confirms_deliverable_3d": within_days})
+        total_extra = sum(stats["extra"])
+        heal = stats["heal"]
+        dtct = stats["detect"]
+        out = {"status": "pass" if verdict["decision"] == "proceed" else "ABSTAIN",
+               "cheapest": cheapest, "delivery": status_text.strip(),
+               "evidence": evidences, "constraints": verdict,
+               "extra_steps": total_extra,
+               "avg_time_to_heal_ms": (sum(heal) // len(heal)) if heal else 0,
+               "avg_time_to_detect_ms": (sum(dtct) // len(dtct)) if dtct else 0,
+               "elapsed_ms": int((time.time() - t_start) * 1000),
+               "variant": variant, "perturb": perturb}
+        _record_trial(variant, perturb, out["status"] == "pass", seq, total_extra, out["avg_time_to_heal_ms"])
+        try:
+            pathlib.Path("last_run.json").write_text(json.dumps(out, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+        return out
 
 def _record_trial(variant, perturb, success: bool, steps: int, extra: int, heal_ms: int):
     try:
@@ -228,3 +229,4 @@ def _record_trial(variant, perturb, success: bool, steps: int, extra: int, heal_
         p.write_text(json.dumps(m, indent=2), encoding="utf-8")
     except Exception as e:
         print(f"metrics write failed: {e}")
+

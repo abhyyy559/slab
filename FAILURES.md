@@ -1,7 +1,8 @@
 # FAILURES.md — honest, updated per run
 
 - Open-domain transfer: not supported. Reason: command store is site-specific.
-- Learn/version-bump loop: not demonstrated. Reason: no learn→replay→heal→version-bump logs exist yet; `learner.py`/`reflect.py` are stubs. Pitch cut until 3+ logged trials.
-- Variant 1 end-to-end: VERIFIED 2026-09-12 (Python 3.11.9, Playwright chromium, mocks :8000): `status: pass`, Pixel Lite 8GB Rs 18999, delivery available to 500001, 2 extractive evidence rows, APPROVAL_REQUESTED+GRANTED, hash chain in logs/. See last_run.json + evidence.html.
-- Perturbed recovery (modal/extra-step/rename/shuffle/throttle): VERIFIED 2026-09-12. Variant 4 composite (seed 42): pass, 2 extra steps (both overlay dismissals), detect ~3ms, heal ~157ms. Rename+strip forces synonym re-ground (0.392 -> 0.80). Interstitials show once per tab session (cookie-modal realism).
+- Learn/version-bump loop: VERIFIED 2026-09-12. `agent/learner.py` explores Site A/B via WebCMD sessions and generates `commands/phone_delivery_check.json`. `agent/reflect.py` passes regression guards (`harness/regression/test_guard.py`) and bumps version (`v1 -> v2`) with backup and rollback support.
+- Variant 1 end-to-end: VERIFIED 2026-09-12 (WebCMD v0.8.4 CLI, Cloak daemon, mocks :8000): `status: pass`, Pixel Lite 8GB Rs 18999, delivery available to 500001, 2 extractive evidence rows, APPROVAL_REQUESTED+GRANTED, WebCMD session lifecycle logged, SHA-256 hash chain in logs/. See last_run.json + evidence.html.
+- Perturbed recovery (modal/extra-step/rename/shuffle/throttle): VERIFIED 2026-09-12 (WebCMD). Variant 4 composite: `status: pass`, 2 extra steps (both overlay dismissals), rename forces synonym re-ground (0.373 -> 0.80), sitemap memory signal verified, postconditions verified.
 - Real-site credibility run (books.toscrape.com): not done. Reason: blocked behind variant 1.
+

@@ -5,8 +5,8 @@ variant_cap: 5_plus_1_infeasible
 code_freeze: H-2h
 stack:
   language: python-3.11+
-  automation: playwright-sync
-  adapters: webcmd-or-hand-authored-json
+  automation: webcmd-browser-cli
+  adapters: webcmd-learned-json
   logs: json-jsonl
   board: static-html-js
   console: flask-localhost

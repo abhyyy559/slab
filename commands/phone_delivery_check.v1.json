@@ -1,6 +1,6 @@
 {
   "workflow": "phone_delivery_check",
-  "version": 2,
+  "version": 1,
   "created": "2026-09-12T12:35:22.637818",
   "site": "site_a",
   "template": [
@@ -122,9 +122,6 @@
       "has_button": true,
       "button_text": "Check Delivery",
       "has_status": true
-    },
-    "last_healed_at": "2026-09-12T13:17:48.491002",
-    "healed_from_version": 1,
-    "recoveries_absorbed": 21
+    }
   }
 }

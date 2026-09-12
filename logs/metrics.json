@@ -33,6 +33,60 @@
       "steps": 4,
       "extra_steps": 0,
       "heal_ms": 0
+    },
+    {
+      "trial": 4,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 5,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 4928
+    },
+    {
+      "trial": 6,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 7,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 4192
+    },
+    {
+      "trial": 8,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 4313
+    },
+    {
+      "trial": 9,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 4625
     }
   ]
 }

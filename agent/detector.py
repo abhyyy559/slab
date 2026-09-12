@@ -15,39 +15,30 @@ class ChangeDetected:
 def _now() -> int:
     return int(time.time() * 1000)
 
-def _visible(page, selector: str) -> bool:
-    try:
-        loc = page.locator(selector)
-        return loc.count() >= 1 and loc.first.is_visible()
-    except Exception:
-        return False
-
-def _body_text(page) -> str:
-    try:
-        return page.evaluate("() => document.body ? document.body.innerText : ''") or ""
-    except Exception:
-        return ""
-
 def scan(page, expected_button_texts: list | None = None) -> list:
     """Scan for live changes. Returns ChangeDetected list (empty = clean)."""
     out = []
-    body = _body_text(page)
+    res = page.evaluate("""() => {
+        const modal = document.getElementById('chaos-modal');
+        const confirm = document.getElementById('chaos-confirm');
+        const modalVis = !!(modal && (modal.offsetWidth || modal.offsetHeight || modal.getClientRects().length));
+        const confirmVis = !!(confirm && (confirm.offsetWidth || confirm.offsetHeight || confirm.getClientRects().length));
+        const body = document.body ? document.body.innerText : '';
+        const title = document.title || '';
+        return { modalVis, confirmVis, body, title };
+    }""") or {}
+
+    body = res.get("body", "")
     low = body.lower()
-    if _visible(page, "#chaos-modal"):
-        out.append(ChangeDetected("modal", "no_blocking_modal", "chaos-modal visible",
-                                  ["visual"], _now()))
-    if _visible(page, "#chaos-confirm"):
-        out.append(ChangeDetected("extra_step", "no_interstitial", "chaos-confirm visible",
-                                  ["visual"], _now()))
+    if res.get("modalVis"):
+        out.append(ChangeDetected("modal", "no_blocking_modal", "chaos-modal visible", ["visual"], _now()))
+    if res.get("confirmVis"):
+        out.append(ChangeDetected("extra_step", "no_interstitial", "chaos-confirm visible", ["visual"], _now()))
     for exp, renamed in (RENAMED_PAIRS if expected_button_texts is None
                          else [(t, "") for t in expected_button_texts]):
         if exp.lower() not in low and renamed and renamed.lower() in low:
             out.append(ChangeDetected("label_renamed", exp, renamed, ["text"], _now()))
-    title = ""
-    try:
-        title = page.title() or ""
-    except Exception:
-        pass
+    title = res.get("title", "")
     if "500" in title or "error" in title.lower():
         out.append(ChangeDetected("error_page", "site_page", title, ["text"], _now()))
     return out
@@ -55,7 +46,11 @@ def scan(page, expected_button_texts: list | None = None) -> list:
 def check_post(page, name: str) -> tuple:
     """Verify a postcondition. Returns (ok: bool, observed: str)."""
     if name == "results_visible":
-        ok = _visible(page, '[data-testid="results"], #chaos-results')
+        res = page.evaluate("""() => {
+            const el = document.querySelector('[data-testid="results"], #chaos-results');
+            return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length));
+        }""")
+        ok = bool(res)
         return ok, "results_visible" if ok else "results_missing"
     if name == "results_filtered":
         try:
@@ -67,7 +62,10 @@ def check_post(page, name: str) -> tuple:
         return True, "product_selected"
     if name == "delivery_status_visible":
         try:
-            t = page.inner_text('[data-testid="delivery-status"]') or ""
+            t = page.evaluate("""() => {
+                const el = document.querySelector('[data-testid="delivery-status"]');
+                return el ? el.innerText : '';
+            }""") or ""
             return (len(t.strip()) > 0, t.strip()[:80] or "delivery_status_empty")
         except Exception:
             return False, "delivery_status_missing"
@@ -77,3 +75,4 @@ def detect(expected: str, observed: str, signals=None) -> ChangeDetected | None:
     if expected == observed:
         return None
     return ChangeDetected("mismatch", expected, observed, signals or [], _now())
+
