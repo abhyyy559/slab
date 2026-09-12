@@ -9,11 +9,16 @@
   <div data-testid="delivery-status" aria-live="polite"></div>
 </main>
 <script>
-document.querySelector('[data-testid="check-button"]').addEventListener('click', () => {
+function runCheck() {
   const pin = document.querySelector('[data-testid="pin-input"]').value.trim();
   const el = document.querySelector('[data-testid="delivery-status"]');
   el.textContent = (pin === "500001") ? "Delivery available to PIN 500001 in 2-3 days" : ("Delivery not available to PIN " + pin);
+}
+document.querySelector('[data-testid="check-button"]').addEventListener('click', () => {
+  const d = window.__chaosThrottleMs || 0;
+  if (d) setTimeout(runCheck, d); else runCheck();
 });
 </script>
+<script src="/chaos.js"></script>
 </body>
 </html>

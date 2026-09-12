@@ -1,1 +1,29 @@
-{"replay_success_rate": "0/0", "offline_replay_success_rate": "0/0", "avg_time_to_detect_ms": null, "avg_time_to_heal_ms": null, "avg_extra_steps": null, "citation_precision": null, "transfer": null, "learning_curve": []}
+{
+  "replay_success_rate": "0/0",
+  "offline_replay_success_rate": "0/0",
+  "avg_time_to_detect_ms": null,
+  "avg_time_to_heal_ms": null,
+  "avg_extra_steps": null,
+  "citation_precision": null,
+  "transfer": null,
+  "learning_curve": [
+    {
+      "trial": 1,
+      "variant": 1,
+      "perturb": null,
+      "success": true,
+      "steps": 4,
+      "extra_steps": 0,
+      "heal_ms": 0
+    },
+    {
+      "trial": 2,
+      "variant": 4,
+      "perturb": "composite",
+      "success": true,
+      "steps": 4,
+      "extra_steps": 2,
+      "heal_ms": 157
+    }
+  ]
+}

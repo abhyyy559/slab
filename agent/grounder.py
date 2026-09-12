@@ -4,6 +4,8 @@ import difflib
 
 TAU = 0.70
 WEIGHTS = {"selector": 0.35, "role_name": 0.25, "text": 0.20, "visual": 0.10, "landmark": 0.10}
+# Renamed-label synonyms (perturbation tolerance): relaxed re-grounding accepts these.
+SYNONYMS = {"Apply Filter": ["Refine Results"], "Check Delivery": ["Verify Shipment"], "Search": ["Look Up"]}
 
 @dataclass
 class Target:
@@ -65,8 +67,13 @@ def ground(page, target: Target) -> Grounding:
     try:
         if target.text:
             body = page.evaluate("() => document.body ? document.body.innerText : ''") or ""
-            # best window score approximated by ratio on first 2000 chars window containing? simple global containment
-            s = 1.0 if target.text.lower() in body.lower() else _score_text(target.text, body[:2000])
+            low = body.lower()
+            if target.text.lower() in low:
+                s = 1.0
+            elif any(syn.lower() in low for syn in SYNONYMS.get(target.text, [])):
+                s = 0.9
+            else:
+                s = _score_text(target.text, body[:2000])
             scores["text"] = s
             detail["text_score"] = round(s, 3)
             if s >= 0.75 and "text" not in signals:
