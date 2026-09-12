@@ -37,6 +37,7 @@
 
 ## Next — one by one, in order
 - [x] Infeasible variant (+1): budget 8000 + 12GB → ABSTAIN naming `max_price AND min_ram` (verified)
+- [x] Regression-guard + rollback: guard v1/v2/v3/v4/v6, good ACCEPTED v1→v2, bad REJECTED, rollback→v1 green; `logs/versions.jsonl` (verified)
 - [ ] Medicine-finder swap: pharmacy + clinic mocks replace phone v0; re-verify v1 + v4
 - [ ] Credibility run: same-family real HTML (books.toscrape.com), pass or honest ABSTAIN
 - [ ] Reflect: regression-guarded version bump + `rollback` demo (only then un-cut "learning")

@@ -36,6 +36,12 @@ def main():
     rb = sub.add_parser("rollback")
     rb.add_argument("--workflow", default="phone_delivery_check")
     rb.add_argument("--to", type=int, default=1)
+    rb.add_argument("--base", default="http://127.0.0.1:8000")
+    pb = sub.add_parser("propose-bump")
+    pb.add_argument("--workflow", default="phone_delivery_check")
+    pb.add_argument("--from", dest="reflected_from", default="variant_4_heal")
+    pb.add_argument("--mode", choices=["good", "bad"], default="good")
+    pb.add_argument("--base", default="http://127.0.0.1:8000")
     a = ap.parse_args()
     if a.cmd == "run":
         raise SystemExit(cmd_run(a))
@@ -46,7 +52,13 @@ def main():
         return
     if a.cmd == "rollback":
         from .reflect import rollback
-        rollback(a.workflow, a.to)
+        print(json.dumps(rollback(a.workflow, a.to, base=a.base), indent=2))
+        return
+    if a.cmd == "propose-bump":
+        from .reflect import propose_bump
+        out = propose_bump(a.workflow, a.reflected_from, a.mode, base=a.base)
+        print(json.dumps(out, indent=2))
+        raise SystemExit(0 if out["verdict"] == "ACCEPTED" else 3)
 
 if __name__ == "__main__":
     main()

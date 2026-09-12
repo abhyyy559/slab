@@ -2,6 +2,7 @@
 
 **Thesis:** *Replay deterministically. Heal on change. Prove every claim. Abstain when wrong.*
 **Frame:** *We didn't build another shopping agent. We built the recovery layer any browser agent needs — benchmarked against a cross-site workflow under live, judge-operated UI chaos.* The benchmark is the test bench; the recovery engine is the product.
+**Learn fact (20 seconds, then move on):** every run before burned effort rediscovering the same site. We ran webcmd learn once — `adapters/voltkart/search.js` + `adapters/swiftship/check.js` is what came out. Every replay since has been deterministic (`python -m agent learn` reproduces it).
 **Cut from pitch:** "learning" / version-bump loop — stubs only, no logs yet (see FAILURES.md).
 
 ## Benchmark workflow (load-bearing handoff: loop, not hop)
