@@ -1,10 +1,11 @@
 # SENTRY — Recovery engine for browser agents (SLAB Track 01)
 
-**Thesis:** *Learn once. Replay forever. Heal on change. Prove every claim. Abstain when wrong.*
-**Frame:** *We didn't build another shopping agent. We built the recovery layer any browser agent needs — benchmarked against a cross-site medicine-finder workflow under live, judge-operated UI chaos.* The benchmark is the test bench; the recovery engine is the product.
+**Thesis:** *Replay deterministically. Heal on change. Prove every claim. Abstain when wrong.*
+**Frame:** *We didn't build another shopping agent. We built the recovery layer any browser agent needs — benchmarked against a cross-site workflow under live, judge-operated UI chaos.* The benchmark is the test bench; the recovery engine is the product.
+**Cut from pitch:** "learning" / version-bump loop — stubs only, no logs yet (see FAILURES.md).
 
-## Benchmark workflow (medicine-finder, loop not hop)
-Site A pharmacy (cheapest in-stock medicine) -> Site B clinic (branch availability) -> reserve pickup (approval gate). **Loop:** B availability filters the A choice — cheapest *deliverable*, not cheapest listed. Current `commands/phone_delivery_check.json` is the v0 phone-shaped placeholder; medicine swap lands once variant 1 verifies on a Python 3.11 machine.
+## Benchmark workflow (load-bearing handoff: loop, not hop)
+Goal: *"Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days, and hold it for approval."* Site B's answer determines Site A's choice — cheapest *deliverable*, not cheapest listed. Current `commands/phone_delivery_check.json` is the v0 phone-shaped placeholder; medicine swap lands once variant 1 verifies on a Python 3.11 machine.
 
 ## Setup
 ```bash
@@ -13,7 +14,7 @@ python -m venv .venv
 pip install -r requirements.txt
 playwright install chromium
 python mocks/serve.py --port 8000
-python -m agent run --goal "Find cheapest phone >=8GB RAM under Rs 20000, confirm delivery to PIN 500001" --variant 1
+python -m agent run --goal "Find the cheapest in-stock option on Site A that Site B confirms is deliverable within 3 days" --variant 1
 ```
 
 ## Architecture
@@ -21,9 +22,9 @@ python -m agent run --goal "Find cheapest phone >=8GB RAM under Rs 20000, confir
 NL goal -> planner -> commands/*.json -> replayer -> executor (Playwright)
                           |                |-> grounder (5-signal confidence, tau=0.70)
                           |                |-> detector (ChangeDetected) -> recovery (re-locate/re-plan/backtrack)
-                          |-> evidence (extractive snippets) -> evidence-board/
-                          |-> constraints (pass/fail/unsat + ABSTAIN) -> approval gate (HITL)
-                          |-> logger (actions/recoveries/hashes/metrics) -> reflect (version bump + regression + rollback)
+                          |-> evidence (extractive snippets) -> evidence.html (plain table, generated)
+                          |-> constraints (pass/fail/unsat + ABSTAIN) -> approval gate (browser modal; CLI fallback)
+                          |-> logger (actions/recoveries/hashes/metrics). learner/reflect: CUT from pitch (stubs).
 Judge console: harness/console (localhost:8765) injects shuffle/rename/modal/extra_step/throttle/composite.
 Mocks: mocks/site_a (search/filter/results/product), mocks/site_b (PIN delivery check).
 ```
@@ -31,7 +32,7 @@ Mocks: mocks/site_a (search/filter/results/product), mocks/site_b (PIN delivery 
 ## Models / APIs used
 - Planner/grounding assist: (declare here, e.g. `none/keyless-first` or `model: <name>`). No LLM in hot replay loop.
 - Automation: Playwright (sync API) + webcmd (or hand-authored command JSON fallback per kill-gate).
-- Data: JSON command store, JSONL logs, static HTML evidence board.
+- Data: JSON command store, JSONL logs, evidence.html plain table (generated from JSON).
 - Server: Flask judge console (localhost only) + static mock server.
 - Declared libs: see `requirements.txt`. Declared templates: `commands/*.json` provenance field.
 
@@ -39,12 +40,12 @@ Mocks: mocks/site_a (search/filter/results/product), mocks/site_b (PIN delivery 
 See spec §4. Entry: `python -m agent --help`.
 
 ## Logs / Traces
-`logs/actions.jsonl`, `logs/recoveries.jsonl`, `logs/replay-hashes.jsonl`, `logs/metrics.json` from at least one full run. Hash-chain head is printed to stdout as appended (visible in 3s, not buried in JSONL). Evidence board is a **plain HTML table** (90-min cap, no replay UI).
+`logs/actions.jsonl`, `logs/recoveries.jsonl`, `logs/replay-hashes.jsonl`, `logs/metrics.json` from at least one full run. Hash-chain head is printed to stdout as appended (visible in 3s, not buried in JSONL). `evidence.html` is a **plain table generated from JSON** (`python build_evidence.py`) — the evidence-board/ project is killed, 1h max.
 
 ## Headline metric: recovery cost
 Extra steps + heal time per perturbation, averaged across the run. Nobody else owns this number.
 
-## Failure table (honest, updated per run)
+## Failure table (honest, updated per run — full list in FAILURES.md)
 | Failure | Handling | Status |
 |---|---|---|
 | Element renamed/moved | re-ground (5-signal, tau=0.70), log Recovery | built, unverified (no Python here) |

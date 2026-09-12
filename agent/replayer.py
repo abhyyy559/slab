@@ -5,7 +5,7 @@ from .executor import do_action, state_hash
 from .logger import log_action, log_hash
 from .evidence import make_claim
 from .constraints import check as check_constraints
-from .approval import require_approval
+from .approval import require_approval, require_approval_browser
 
 def load_command(path: str) -> dict:
     return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
@@ -97,8 +97,10 @@ def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                        result="ok" if g4.confidence >= TAU else "LOW_CONFIDENCE_PAUSE")
             if g4.confidence < TAU or g4.locator is None:
                 return {"status": "ABSTAIN", "reason": "LOW_CONFIDENCE check_button", "confidence": g4.confidence}
-            ok = require_approval(url2, "check_delivery_submit", {"pin": pin},
-                                  auto=("grant" if auto_approve else None))
+            if auto_approve:
+                ok = require_approval(url2, "check_delivery_submit", {"pin": pin}, auto="grant")
+            else:
+                ok = require_approval_browser(page, url2, "check_delivery_submit", {"pin": pin})
             if not ok:
                 return {"status": "ABSTAIN", "reason": "APPROVAL_DENIED"}
             r4 = do_action(page, "click", g4.locator)
