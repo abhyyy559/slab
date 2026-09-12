@@ -35,7 +35,7 @@
 - [x] Demo run for review: screenshots + log walkthrough (this session)
 
 ## Next — one by one, in order
-- [ ] Infeasible variant (+1): budget 8000 + 12GB → ABSTAIN naming `max_price AND min_ram`
+- [x] Infeasible variant (+1): budget 8000 + 12GB → ABSTAIN naming `max_price AND min_ram` (verified)
 - [ ] Medicine-finder swap: pharmacy + clinic mocks replace phone v0; re-verify v1 + v4
 - [ ] Credibility run: same-family real HTML (books.toscrape.com), pass or honest ABSTAIN
 - [ ] Reflect: regression-guarded version bump + `rollback` demo (only then un-cut "learning")

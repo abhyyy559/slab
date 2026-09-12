@@ -4,12 +4,15 @@ import argparse, json
 def cmd_run(a):
     from .replayer import run_variant
     out = run_variant(variant=a.variant, base=a.base, goal=a.goal or "",
-                      perturb=a.perturb, auto_approve=(not a.no_yes), headless=(not a.headed))
+                      perturb=a.perturb, auto_approve=(not a.no_yes), headless=(not a.headed),
+                      budget=a.budget, ram=a.ram, pin=a.pin)
     print(json.dumps(out, indent=2))
     if out.get("status") == "pass":
         print("\nEVIDENCE TABLE")
         for e in out.get("evidence", []):
             print(f"- {e['claim']}\n  url={e['url']} off={e['char_offset']} sha={e['sha256'][:12]}...")
+    elif out.get("status") == "ABSTAIN":
+        print(f"\nABSTAIN: refused correctly. failed_constraint={out.get('failed_constraint', out.get('reason'))}")
     return 0 if out.get("status") == "pass" else 2
 
 def main():
@@ -22,6 +25,9 @@ def main():
     r.add_argument("--perturb", default=None)
     r.add_argument("--no-yes", dest="no_yes", action="store_true", help="prompt for approval gate")
     r.add_argument("--headed", action="store_true")
+    r.add_argument("--budget", type=int, default=None, help="override command budget (infeasible demo: 8000)")
+    r.add_argument("--ram", type=int, default=None, help="override command min RAM (infeasible demo: 12)")
+    r.add_argument("--pin", default=None)
     l = sub.add_parser("learn")
     l.add_argument("--goal", default="")
     l.add_argument("--site", default="site_a")

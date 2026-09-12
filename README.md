@@ -44,6 +44,7 @@ See spec §4. Entry: `python -m agent --help`.
 
 ## Headline metric: recovery cost
 Extra steps + heal time per perturbation, averaged across the run. Nobody else owns this number.
+Definitions (say verbatim if probed): detect_ms = DOM mutation → next scan (polling cadence, not reasoning); heal_ms = first detection → verified recovery (reasoning + acting).
 
 ## Failure table (honest, updated per run — full list in FAILURES.md)
 | Failure | Handling | Status |

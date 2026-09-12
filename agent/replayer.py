@@ -70,11 +70,19 @@ def _ground_or_recover(page, target: Target, step: int, name: str, seq: int, las
 def run_variant(variant: int = 1, base: str = "http://127.0.0.1:8000",
                 command_path: str = "commands/phone_delivery_check.json",
                 goal: str = "", perturb: str | None = None,
-                auto_approve: bool = True, headless: bool = True) -> dict:
+                auto_approve: bool = True, headless: bool = True,
+                budget: int | None = None, ram: int | None = None,
+                pin: str | None = None) -> dict:
     from playwright.sync_api import sync_playwright
     cmd = load_command(command_path)
     params = dict(cmd.get("params", {}))
     params["base"] = base
+    if budget is not None:
+        params["budget"] = str(budget)
+    if ram is not None:
+        params["ram"] = str(ram)
+    if pin is not None:
+        params["pin"] = str(pin)
     budget, ram, pin = int(params["budget"]), int(params["ram"]), str(params["pin"])
     seq = 0
     stats = {"extra": [], "heal": [], "detect": []}

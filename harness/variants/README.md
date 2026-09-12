@@ -4,4 +4,5 @@
 - 3: same, pin 500002 (practiced param shift)
 - 4: composite perturb (seed 42: shuffle+rename+modal+extra_step+throttle+strip_testids), deterministic via `?perturb=composite`; judge-operated live via console (mock pages poll :8765/status). Gate: pass with <=2 extra steps + Recovery entry per perturbation.
 - 5: transfer same-family (books.toscrape.com credibility run)
-- +1: infeasible (budget 8000 + 12GB RAM) -> ABSTAIN naming max_price AND min_ram
+- +1: infeasible (budget 8000 + 12GB RAM) -> ABSTAIN naming max_price AND min_ram.
+  Run: `python -m agent run --goal "..." --variant 6 --budget 8000 --ram 12 --base http://127.0.0.1:8000` (exit 2, ABSTAIN banner).
